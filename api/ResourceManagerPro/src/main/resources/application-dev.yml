@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    show-sql: true
+
+  datasource:
+    url: jdbc:mariadb://localhost:3306/rmp?createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Josh@977}
+
+# Verbose actuator + logging for local development only
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.flywaydb: INFO
