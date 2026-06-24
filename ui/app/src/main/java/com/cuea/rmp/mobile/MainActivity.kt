@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.cuea.rmp.mobile.ui.AppRoot
 import com.cuea.rmp.mobile.ui.auth.AuthViewModel
+import com.cuea.rmp.mobile.ui.notification.NotificationViewModel
 import com.cuea.rmp.mobile.ui.session.SessionViewModel
 import com.cuea.rmp.mobile.ui.theme.RmpMobileTheme
 import com.cuea.rmp.mobile.ui.timesheet.TimesheetViewModel
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
     private val sessionViewModel: SessionViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
     private val timesheetViewModel: TimesheetViewModel by viewModels()
+    private val notificationViewModel: NotificationViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +34,8 @@ class MainActivity : ComponentActivity() {
                     AppRoot(
                         sessionViewModel = sessionViewModel,
                         authViewModel = authViewModel,
-                        timesheetViewModel = timesheetViewModel
+                        timesheetViewModel = timesheetViewModel,
+                        notificationViewModel = notificationViewModel
                     )
                 }
             }
