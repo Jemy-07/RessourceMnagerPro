@@ -1,11 +1,12 @@
 package com.cuea.rmp.request.application.usecase;
 
+import com.cuea.rmp.notification.application.port.in.NotificationPort;
+import com.cuea.rmp.notification.domain.NotificationType;
 import com.cuea.rmp.project.application.dto.AssignResourceCommand;
 import com.cuea.rmp.project.application.port.in.AssignResourceUseCase;
 import com.cuea.rmp.request.application.dto.ApproveRequestCommand;
 import com.cuea.rmp.request.application.dto.RequestResult;
 import com.cuea.rmp.request.application.port.in.ApproveRequestUseCase;
-import com.cuea.rmp.request.application.port.out.NotificationPort;
 import com.cuea.rmp.request.application.port.out.RequestRepository;
 import com.cuea.rmp.request.domain.Request;
 import com.cuea.rmp.shared.domain.NotFoundException;
@@ -57,7 +58,7 @@ public class ApproveRequestService implements ApproveRequestUseCase {
                 saved.getPeriod().end(),
                 saved.getAllocationPct()));
 
-        notificationPort.notify(saved.getRequesterId(),
+        notificationPort.notify(saved.getRequesterId(), NotificationType.APPROVAL,
                 "Your request '" + saved.getTitle() + "' was APPROVED");
         return RequestResult.from(saved);
     }
