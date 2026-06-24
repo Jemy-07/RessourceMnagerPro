@@ -6,6 +6,7 @@ import androidx.work.WorkManager
 import com.cuea.rmp.mobile.core.db.AppDatabase
 import com.cuea.rmp.mobile.core.db.PendingMutationDao
 import com.cuea.rmp.mobile.notification.NotificationDao
+import com.cuea.rmp.mobile.resource.ResourceDao
 import com.cuea.rmp.mobile.timesheet.TimesheetDao
 import dagger.Module
 import dagger.Provides
@@ -41,6 +42,11 @@ object DatabaseModule {
     @Provides
     fun provideNotificationDao(appDatabase: AppDatabase): NotificationDao {
         return appDatabase.notificationDao()
+    }
+
+    @Provides
+    fun provideResourceDao(appDatabase: AppDatabase): ResourceDao {
+        return appDatabase.resourceDao()
     }
 
     @Provides
