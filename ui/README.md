@@ -9,6 +9,8 @@ This module contains the Android client scaffold for Resource Manager Pro.
   - `AuthScreen` for login/register
   - `TimesheetScreen` for logging time, manual sync, and local queue visibility
   - `NotificationScreen` for refresh + mark-read
+  - `ResourceScreen` for cache-then-network resource listing
+  - `ProjectScreen` for cache-then-network project listing
   - session-gated root composable (`AppRoot`)
 - Retrofit + kotlinx serialization network layer with:
   - API envelope model (`ApiResponse<T>`)
@@ -22,6 +24,8 @@ This module contains the Android client scaffold for Resource Manager Pro.
   - `PendingMutationEntity` queue for offline mutations
   - local timesheet entity and DAO
   - local notification entity and DAO
+  - local resource entity and DAO
+  - local project entity and DAO
 - Offline-first timesheet repository:
   - creates client UUIDs
   - stores pending entries locally
