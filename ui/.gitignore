@@ -1,0 +1,25 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+
+# Generated files
+bin/
+gen/
+out/
+build/
+/captures
+
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+
+# Local configuration file (sdk path, etc) - machine specific, never commit
+local.properties
+
+# Android Studio captures / native build folders
+captures/
+.externalNativeBuild
+.cxx
