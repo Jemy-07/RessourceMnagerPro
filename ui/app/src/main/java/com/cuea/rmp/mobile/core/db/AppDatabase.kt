@@ -7,6 +7,8 @@ import com.cuea.rmp.mobile.notification.NotificationDao
 import com.cuea.rmp.mobile.notification.NotificationLocalEntity
 import com.cuea.rmp.mobile.project.ProjectDao
 import com.cuea.rmp.mobile.project.ProjectLocalEntity
+import com.cuea.rmp.mobile.request.RequestDao
+import com.cuea.rmp.mobile.request.RequestLocalEntity
 import com.cuea.rmp.mobile.resource.ResourceDao
 import com.cuea.rmp.mobile.resource.ResourceLocalEntity
 import com.cuea.rmp.mobile.timesheet.TimesheetDao
@@ -18,9 +20,10 @@ import com.cuea.rmp.mobile.timesheet.TimesheetLocalEntity
         TimesheetLocalEntity::class,
         NotificationLocalEntity::class,
         ResourceLocalEntity::class,
-        ProjectLocalEntity::class
+        ProjectLocalEntity::class,
+        RequestLocalEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -35,6 +38,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun resourceDao(): ResourceDao
 
     abstract fun projectDao(): ProjectDao
+
+    abstract fun requestDao(): RequestDao
 }
 
 
