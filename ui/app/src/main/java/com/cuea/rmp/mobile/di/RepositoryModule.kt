@@ -6,6 +6,9 @@ import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.notification.NotificationApi
 import com.cuea.rmp.mobile.notification.NotificationDao
 import com.cuea.rmp.mobile.notification.NotificationRepository
+import com.cuea.rmp.mobile.resource.ResourceApi
+import com.cuea.rmp.mobile.resource.ResourceDao
+import com.cuea.rmp.mobile.resource.ResourceRepository
 import com.cuea.rmp.mobile.timesheet.TimesheetApi
 import com.cuea.rmp.mobile.timesheet.TimesheetDao
 import com.cuea.rmp.mobile.timesheet.TimesheetRepository
@@ -50,6 +53,16 @@ object RepositoryModule {
         json: Json
     ): NotificationRepository {
         return NotificationRepository(notificationApi, notificationDao, json)
+    }
+
+    @Provides
+    @Singleton
+    fun provideResourceRepository(
+        resourceApi: ResourceApi,
+        resourceDao: ResourceDao,
+        json: Json
+    ): ResourceRepository {
+        return ResourceRepository(resourceApi, resourceDao, json)
     }
 }
 
