@@ -1,9 +1,10 @@
 package com.cuea.rmp.request.application.usecase;
 
+import com.cuea.rmp.notification.application.port.in.NotificationPort;
+import com.cuea.rmp.notification.domain.NotificationType;
 import com.cuea.rmp.request.application.dto.RejectRequestCommand;
 import com.cuea.rmp.request.application.dto.RequestResult;
 import com.cuea.rmp.request.application.port.in.RejectRequestUseCase;
-import com.cuea.rmp.request.application.port.out.NotificationPort;
 import com.cuea.rmp.request.application.port.out.RequestRepository;
 import com.cuea.rmp.request.domain.Request;
 import com.cuea.rmp.shared.domain.NotFoundException;
@@ -37,7 +38,7 @@ public class RejectRequestService implements RejectRequestUseCase {
         request.reject(command.approverId(), command.comments(), Instant.now(clock));
         Request saved = requestRepository.save(request);
 
-        notificationPort.notify(saved.getRequesterId(),
+        notificationPort.notify(saved.getRequesterId(), NotificationType.APPROVAL,
                 "Your request '" + saved.getTitle() + "' was REJECTED: " + saved.getComments());
         return RequestResult.from(saved);
     }
