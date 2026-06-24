@@ -7,6 +7,7 @@ import com.cuea.rmp.mobile.core.db.AppDatabase
 import com.cuea.rmp.mobile.core.db.PendingMutationDao
 import com.cuea.rmp.mobile.notification.NotificationDao
 import com.cuea.rmp.mobile.project.ProjectDao
+import com.cuea.rmp.mobile.request.RequestDao
 import com.cuea.rmp.mobile.resource.ResourceDao
 import com.cuea.rmp.mobile.timesheet.TimesheetDao
 import dagger.Module
@@ -53,6 +54,11 @@ object DatabaseModule {
     @Provides
     fun provideProjectDao(appDatabase: AppDatabase): ProjectDao {
         return appDatabase.projectDao()
+    }
+
+    @Provides
+    fun provideRequestDao(appDatabase: AppDatabase): RequestDao {
+        return appDatabase.requestDao()
     }
 
     @Provides
