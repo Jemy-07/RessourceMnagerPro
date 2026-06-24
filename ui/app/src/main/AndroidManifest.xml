@@ -8,7 +8,7 @@
     <application
         android:name=".RmpApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@android:drawable/sym_def_app_icon"
         android:label="Resource Manager Pro"
         android:theme="@style/Theme.RmpMobile"
         android:usesCleartextTraffic="true">
