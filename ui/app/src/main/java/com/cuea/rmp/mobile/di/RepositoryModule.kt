@@ -6,6 +6,9 @@ import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.notification.NotificationApi
 import com.cuea.rmp.mobile.notification.NotificationDao
 import com.cuea.rmp.mobile.notification.NotificationRepository
+import com.cuea.rmp.mobile.project.ProjectApi
+import com.cuea.rmp.mobile.project.ProjectDao
+import com.cuea.rmp.mobile.project.ProjectRepository
 import com.cuea.rmp.mobile.resource.ResourceApi
 import com.cuea.rmp.mobile.resource.ResourceDao
 import com.cuea.rmp.mobile.resource.ResourceRepository
@@ -63,6 +66,16 @@ object RepositoryModule {
         json: Json
     ): ResourceRepository {
         return ResourceRepository(resourceApi, resourceDao, json)
+    }
+
+    @Provides
+    @Singleton
+    fun provideProjectRepository(
+        projectApi: ProjectApi,
+        projectDao: ProjectDao,
+        json: Json
+    ): ProjectRepository {
+        return ProjectRepository(projectApi, projectDao, json)
     }
 }
 
