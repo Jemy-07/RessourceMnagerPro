@@ -18,6 +18,8 @@ import com.cuea.rmp.mobile.ui.auth.AuthScreen
 import com.cuea.rmp.mobile.ui.auth.AuthViewModel
 import com.cuea.rmp.mobile.ui.notification.NotificationScreen
 import com.cuea.rmp.mobile.ui.notification.NotificationViewModel
+import com.cuea.rmp.mobile.ui.resource.ResourceScreen
+import com.cuea.rmp.mobile.ui.resource.ResourceViewModel
 import com.cuea.rmp.mobile.ui.session.SessionViewModel
 import com.cuea.rmp.mobile.ui.timesheet.TimesheetScreen
 import com.cuea.rmp.mobile.ui.timesheet.TimesheetViewModel
@@ -27,7 +29,8 @@ fun AppRoot(
     sessionViewModel: SessionViewModel,
     authViewModel: AuthViewModel,
     timesheetViewModel: TimesheetViewModel,
-    notificationViewModel: NotificationViewModel
+    notificationViewModel: NotificationViewModel,
+    resourceViewModel: ResourceViewModel
 ) {
     val isAuthenticated by sessionViewModel.isAuthenticated.collectAsState()
     var selectedTab by remember { mutableStateOf(AuthenticatedTab.TIMESHEETS) }
@@ -47,6 +50,9 @@ fun AppRoot(
                     TextButton(onClick = { selectedTab = AuthenticatedTab.NOTIFICATIONS }) {
                         androidx.compose.material3.Text("Notifications")
                     }
+                    TextButton(onClick = { selectedTab = AuthenticatedTab.RESOURCES }) {
+                        androidx.compose.material3.Text("Resources")
+                    }
                 }
                 TextButton(onClick = { authViewModel.logout() }) {
                     androidx.compose.material3.Text("Logout")
@@ -62,6 +68,8 @@ fun AppRoot(
                 }
 
                 AuthenticatedTab.NOTIFICATIONS -> NotificationScreen(viewModel = notificationViewModel)
+
+                AuthenticatedTab.RESOURCES -> ResourceScreen(viewModel = resourceViewModel)
             }
         }
     } else {
@@ -71,7 +79,8 @@ fun AppRoot(
 
 private enum class AuthenticatedTab {
     TIMESHEETS,
-    NOTIFICATIONS
+    NOTIFICATIONS,
+    RESOURCES
 }
 
 
