@@ -1,0 +1,16 @@
+package com.cuea.rmp.notification.application.port.out;
+
+import com.cuea.rmp.notification.domain.Notification;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface NotificationRepository {
+
+    Notification save(Notification notification);
+
+    Optional<Notification> findById(UUID id);
+
+    List<Notification> findByUserId(UUID userId);
+}
