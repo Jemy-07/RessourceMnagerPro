@@ -7,7 +7,8 @@ This module contains the Android client scaffold for Resource Manager Pro.
 - Hilt application setup (`RmpApplication`) and Compose activity shell (`MainActivity`).
 - Minimal usable UI flow:
   - `AuthScreen` for login/register
-  - `TimesheetScreen` for logging time + logout
+  - `TimesheetScreen` for logging time, manual sync, and local queue visibility
+  - `NotificationScreen` for refresh + mark-read
   - session-gated root composable (`AppRoot`)
 - Retrofit + kotlinx serialization network layer with:
   - API envelope model (`ApiResponse<T>`)
@@ -20,6 +21,7 @@ This module contains the Android client scaffold for Resource Manager Pro.
 - Room database with:
   - `PendingMutationEntity` queue for offline mutations
   - local timesheet entity and DAO
+  - local notification entity and DAO
 - Offline-first timesheet repository:
   - creates client UUIDs
   - stores pending entries locally
