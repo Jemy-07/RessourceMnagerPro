@@ -11,6 +11,7 @@ This module contains the Android client scaffold for Resource Manager Pro.
   - `NotificationScreen` for refresh + mark-read
   - `ResourceScreen` for cache-then-network resource listing
   - `ProjectScreen` for cache-then-network project listing
+  - `RequestScreen` for list/refresh and approve/reject actions
   - session-gated root composable (`AppRoot`)
 - Retrofit + kotlinx serialization network layer with:
   - API envelope model (`ApiResponse<T>`)
@@ -26,6 +27,7 @@ This module contains the Android client scaffold for Resource Manager Pro.
   - local notification entity and DAO
   - local resource entity and DAO
   - local project entity and DAO
+  - local request entity and DAO
 - Offline-first timesheet repository:
   - creates client UUIDs
   - stores pending entries locally
