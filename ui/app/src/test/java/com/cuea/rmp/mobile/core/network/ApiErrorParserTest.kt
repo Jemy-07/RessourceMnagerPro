@@ -1,10 +1,12 @@
 package com.cuea.rmp.mobile.core.network
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalSerializationApi::class)
 class ApiErrorParserTest {
 
     private val json = Json {
