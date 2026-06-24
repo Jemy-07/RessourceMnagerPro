@@ -3,6 +3,9 @@ package com.cuea.rmp.mobile.di
 import com.cuea.rmp.mobile.auth.AuthApi
 import com.cuea.rmp.mobile.auth.AuthRepository
 import com.cuea.rmp.mobile.auth.TokenManager
+import com.cuea.rmp.mobile.notification.NotificationApi
+import com.cuea.rmp.mobile.notification.NotificationDao
+import com.cuea.rmp.mobile.notification.NotificationRepository
 import com.cuea.rmp.mobile.timesheet.TimesheetApi
 import com.cuea.rmp.mobile.timesheet.TimesheetDao
 import com.cuea.rmp.mobile.timesheet.TimesheetRepository
@@ -37,6 +40,16 @@ object RepositoryModule {
         json: Json
     ): TimesheetRepository {
         return TimesheetRepository(timesheetApi, timesheetDao, pendingMutationDao, json)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        notificationApi: NotificationApi,
+        notificationDao: NotificationDao,
+        json: Json
+    ): NotificationRepository {
+        return NotificationRepository(notificationApi, notificationDao, json)
     }
 }
 
