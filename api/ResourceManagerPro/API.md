@@ -300,7 +300,91 @@ Registration is idempotent on `fcmToken` (re-registering re-points it to the cur
 
 ---
 
-## 12. Quick start for the UI
+## 12. Sync (offline-first) — `/api/v1/sync` · any authenticated user
+
+Generic delta-sync across `USER`, `RESOURCE`, `PROJECT`, `ASSIGNMENT`, `REQUEST`, `TIMESHEET`, `BUDGET` (the `entityType` values). Conflicts are resolved server-side by **last-write-wins on `updatedAt`**.
+
+### POST `/api/v1/sync/push`
+Upload a batch of local changes. Each entry carries the row's scalar fields plus the metadata the server needs to detect conflicts.
+
+```jsonc
+// request
+{
+  "changes": [
+    {
+      "entityType": "RESOURCE",
+      "id": "uuid",                       // the row id (client owns it for new rows)
+      "payload": { "name": "edited offline", "availabilityStatus": "UNAVAILABLE" },
+      "clientUpdatedAt": "2026-08-01T10:00:00Z",  // when the client edited it (drives LWW)
+      "clientVersion": 3,                  // version the client based its edit on
+      "deleted": false                     // true = soft delete
+    }
+  ]
+}
+```
+```jsonc
+// 200 data (PushResponse)
+{
+  "appliedCount": 1,
+  "conflictCount": 1,
+  "conflicts": [
+    {
+      "entityType": "RESOURCE",
+      "id": "uuid",
+      "resolution": "CLIENT_WON",          // or "SERVER_WON"
+      "message": "Concurrent edit: client (v3, ...) is newer than server (v5, ...) — applied (last-write-wins)"
+    }
+  ]
+}
+```
+
+Behaviour per entry:
+- `payload` holds **scalar fields only**; server-managed fields (`id`, `createdAt`, `updatedAt`, `version`, `syncStatus`, `deleted`) in the payload are ignored.
+- If `clientVersion` matches the server row → straight upsert (no conflict).
+- If it differs → **concurrent edit**: last-write-wins by `updatedAt`. The losing side (client or server) is recorded in a server audit log flagged `CONFLICT` and surfaced in `conflicts[]`.
+- `deleted: true` performs a soft delete (the row still pulls, with `deleted: true`).
+- Applied rows are marked `SYNCED`.
+- Unknown `entityType` → 422 `UNSUPPORTED_ENTITY_TYPE`; a payload that violates DB constraints → 422 `SYNC_APPLY_FAILED`.
+
+### GET `/api/v1/sync/pull?since=<ISO-8601>`
+Returns every syncable row changed after `since` (**including soft-deletes**), across all entity types, oldest-first.
+
+- `since` is ISO-8601 UTC, e.g. `2026-06-24T08:00:00Z`. Omit (or epoch `1970-01-01T00:00:00Z`) for a full snapshot. Bad format → 422 `INVALID_SINCE`.
+- Use the returned `serverTime` as the `since` for your next pull.
+
+```jsonc
+// 200 data (PullResponse)
+{
+  "serverTime": "2026-06-24T12:54:19.425Z",   // pass back as next `since`
+  "count": 2,
+  "changes": [
+    {
+      "entityType": "RESOURCE",
+      "id": "uuid",
+      "payload": { /* full row incl. id, version, updatedAt, deleted, ... */ },
+      "updatedAt": "2026-06-24T12:54:07.276Z",
+      "version": 2,
+      "deleted": false
+    },
+    {
+      "entityType": "RESOURCE",
+      "id": "uuid",
+      "payload": { /* ... */ },
+      "updatedAt": "2026-06-24T12:54:07.282Z",
+      "version": 1,
+      "deleted": true                          // soft-deleted row still appears in the delta
+    }
+  ]
+}
+```
+
+Recommended client loop: keep a `lastSyncedAt` (start at epoch) → `pull?since=lastSyncedAt` → apply rows locally (respecting `deleted`) → set `lastSyncedAt = serverTime` → push local changes → reconcile any `conflicts`.
+
+> Note: a Resource's `skills` collection is **not** part of its sync payload (scalar columns only). Manage skills via `POST /api/v1/resources/{id}/skills` (§5).
+
+---
+
+## 13. Quick start for the UI
 
 ```bash
 BASE=http://localhost:8080
@@ -330,7 +414,7 @@ When the app is running, live OpenAPI/Swagger UI is available at:
 
 ---
 
-## 13. Typical end-to-end flow (for wiring screens)
+## 14. Typical end-to-end flow (for wiring screens)
 
 1. **Login** → store `accessToken` + `refreshToken`; refresh when a call returns 401 `UNAUTHENTICATED`.
 2. **Admin** sets up: create users, skills, resources (`/users`, `/skills`, `/resources`), add skills to resources.
@@ -338,3 +422,4 @@ When the app is running, live OpenAPI/Swagger UI is available at:
 4. **Member** finds candidates (`/resources/match`), raises a request (`/requests`), logs time (`/timesheets`).
 5. **Approver** approves/rejects requests (`/requests/{id}/approve|reject`) and timesheets (`/timesheets/{id}/approve`) → notifications fire, budget spend updates.
 6. **Any user** lists notifications and registers a device token for push.
+7. **Offline clients** reconcile via `/sync/pull` then `/sync/push` (§12), persisting `serverTime` between runs.
