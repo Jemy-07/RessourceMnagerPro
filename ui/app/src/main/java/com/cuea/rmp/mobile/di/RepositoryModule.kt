@@ -9,6 +9,9 @@ import com.cuea.rmp.mobile.notification.NotificationRepository
 import com.cuea.rmp.mobile.project.ProjectApi
 import com.cuea.rmp.mobile.project.ProjectDao
 import com.cuea.rmp.mobile.project.ProjectRepository
+import com.cuea.rmp.mobile.request.RequestApi
+import com.cuea.rmp.mobile.request.RequestDao
+import com.cuea.rmp.mobile.request.RequestRepository
 import com.cuea.rmp.mobile.resource.ResourceApi
 import com.cuea.rmp.mobile.resource.ResourceDao
 import com.cuea.rmp.mobile.resource.ResourceRepository
@@ -76,6 +79,16 @@ object RepositoryModule {
         json: Json
     ): ProjectRepository {
         return ProjectRepository(projectApi, projectDao, json)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRequestRepository(
+        requestApi: RequestApi,
+        requestDao: RequestDao,
+        json: Json
+    ): RequestRepository {
+        return RequestRepository(requestApi, requestDao, json)
     }
 }
 
