@@ -12,6 +12,7 @@ import com.cuea.rmp.mobile.ui.AppRoot
 import com.cuea.rmp.mobile.ui.auth.AuthViewModel
 import com.cuea.rmp.mobile.ui.notification.NotificationViewModel
 import com.cuea.rmp.mobile.ui.project.ProjectViewModel
+import com.cuea.rmp.mobile.ui.request.RequestViewModel
 import com.cuea.rmp.mobile.ui.resource.ResourceViewModel
 import com.cuea.rmp.mobile.ui.session.SessionViewModel
 import com.cuea.rmp.mobile.ui.theme.RmpMobileTheme
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
     private val notificationViewModel: NotificationViewModel by viewModels()
     private val resourceViewModel: ResourceViewModel by viewModels()
     private val projectViewModel: ProjectViewModel by viewModels()
+    private val requestViewModel: RequestViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +43,8 @@ class MainActivity : ComponentActivity() {
                         timesheetViewModel = timesheetViewModel,
                         notificationViewModel = notificationViewModel,
                         resourceViewModel = resourceViewModel,
-                        projectViewModel = projectViewModel
+                        projectViewModel = projectViewModel,
+                        requestViewModel = requestViewModel
                     )
                 }
             }
