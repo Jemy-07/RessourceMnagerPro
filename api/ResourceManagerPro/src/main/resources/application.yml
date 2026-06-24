@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: ResourceManagerPro
@@ -44,3 +45,6 @@ app:
     secret: ${APP_JWT_SECRET:ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kLTMyLWJ5dGVzLW1pbg==}
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 14
+  fcm:
+    # Path to the Firebase service-account JSON. Leave blank to disable push (dev mode).
+    service-account-path: ${APP_FCM_SERVICE_ACCOUNT_PATH:}
