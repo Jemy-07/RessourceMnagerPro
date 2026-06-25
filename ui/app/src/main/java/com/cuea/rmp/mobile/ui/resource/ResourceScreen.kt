@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -17,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ResourceScreen(viewModel: ResourceViewModel) {
+fun ResourceScreen(viewModel: ResourceViewModel, onResourceClick: (resourceId: String) -> Unit = {}) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -37,26 +38,28 @@ fun ResourceScreen(viewModel: ResourceViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(uiState.resources, key = { it.id }) { item ->
-                ResourceCard(item)
+                ResourceCard(item, onClick = { onResourceClick(item.id) })
             }
         }
     }
 }
 
 @Composable
-private fun ResourceCard(item: ResourceItemUi) {
-    Column(
+private fun ResourceCard(item: ResourceItemUi, onClick: () -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 4.dp),
+        onClick = onClick
     ) {
-        Text(item.name, style = MaterialTheme.typography.titleMedium)
-        Text("type: ${item.type}", style = MaterialTheme.typography.bodySmall)
-        Text("rate: ${item.rate}", style = MaterialTheme.typography.bodySmall)
-        Text("availability: ${item.availability}", style = MaterialTheme.typography.bodySmall)
-        if (item.skillsSummary.isNotBlank()) {
-            Text("skills: ${item.skillsSummary}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(item.name, style = MaterialTheme.typography.titleMedium)
+            Text("type: ${item.type}", style = MaterialTheme.typography.bodySmall)
+            Text("rate: ${item.rate}", style = MaterialTheme.typography.bodySmall)
+            Text("availability: ${item.availability}", style = MaterialTheme.typography.bodySmall)
+            if (item.skillsSummary.isNotBlank()) {
+                Text("skills: ${item.skillsSummary}", style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
-
