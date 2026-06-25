@@ -2,8 +2,8 @@ package com.cuea.rmp.mobile.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cuea.rmp.mobile.BuildConfig
 import com.cuea.rmp.mobile.auth.AuthRepository
+import com.cuea.rmp.mobile.auth.OfflineTestLogin
 import com.cuea.rmp.mobile.auth.dto.LoginRequest
 import com.cuea.rmp.mobile.auth.dto.RegisterRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,12 +43,12 @@ class AuthViewModel @Inject constructor(
     }
 
     fun useOfflineTestCredentials() {
-        if (!BuildConfig.ENABLE_OFFLINE_TEST_LOGIN) return
+        if (!OfflineTestLogin.enabled) return
         _uiState.update {
             it.copy(
                 isRegister = false,
-                email = BuildConfig.OFFLINE_TEST_EMAIL,
-                password = BuildConfig.OFFLINE_TEST_PASSWORD,
+                email = OfflineTestLogin.email,
+                password = OfflineTestLogin.password,
                 errorMessage = null
             )
         }
@@ -126,7 +126,7 @@ data class AuthUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val showOfflineTestLogin: Boolean = BuildConfig.ENABLE_OFFLINE_TEST_LOGIN,
-    val offlineTestEmail: String = BuildConfig.OFFLINE_TEST_EMAIL,
-    val offlineTestPassword: String = BuildConfig.OFFLINE_TEST_PASSWORD
+    val showOfflineTestLogin: Boolean = OfflineTestLogin.enabled,
+    val offlineTestEmail: String = OfflineTestLogin.email,
+    val offlineTestPassword: String = OfflineTestLogin.password
 )
