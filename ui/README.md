@@ -56,6 +56,8 @@ then re-run commands above.
 ## Notes
 
 - `BuildConfig.BASE_URL` defaults to `http://10.0.2.2:8080/` for emulator + local backend.
+- Debug builds include backend-free test login:
+  - Email: `tester@rmp.local`
+  - Password: `Test1234`
 - Backend contract source of truth remains `../API_REFERENCE.md`.
 - Full feature UI is intentionally out of scope in this pass; foundation layers are in place.
-
