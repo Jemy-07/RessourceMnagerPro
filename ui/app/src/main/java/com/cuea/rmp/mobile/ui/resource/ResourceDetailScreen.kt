@@ -60,20 +60,20 @@ fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
             style = MaterialTheme.typography.labelSmall
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = uiState.availabilityFrom,
                 onValueChange = viewModel::onAvailabilityFromChanged,
                 label = { Text("From (YYYY-MM-DD)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
             OutlinedTextField(
                 value = uiState.availabilityTo,
                 onValueChange = viewModel::onAvailabilityToChanged,
                 label = { Text("To (YYYY-MM-DD)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
         }
 
