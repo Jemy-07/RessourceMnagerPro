@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -17,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ProjectScreen(viewModel: ProjectViewModel) {
+fun ProjectScreen(viewModel: ProjectViewModel, onProjectClick: (projectId: String) -> Unit = {}) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -37,25 +38,28 @@ fun ProjectScreen(viewModel: ProjectViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(uiState.projects, key = { it.id }) { item ->
-                ProjectCard(item)
+                ProjectCard(item, onClick = { onProjectClick(item.id) })
             }
         }
     }
 }
 
 @Composable
-private fun ProjectCard(item: ProjectItemUi) {
-    Column(
+private fun ProjectCard(item: ProjectItemUi, onClick: () -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 4.dp),
+        onClick = onClick
     ) {
-        Text(item.name, style = MaterialTheme.typography.titleMedium)
-        Text("status: ${item.status}", style = MaterialTheme.typography.bodySmall)
-        Text("manager: ${item.managerId}", style = MaterialTheme.typography.bodySmall)
-        Text("period: ${item.period}", style = MaterialTheme.typography.bodySmall)
-        if (item.description.isNotBlank()) {
-            Text(item.description, style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(item.name, style = MaterialTheme.typography.titleMedium)
+            Text("status: ${item.status}", style = MaterialTheme.typography.bodySmall)
+            Text("manager: ${item.managerId}", style = MaterialTheme.typography.bodySmall)
+            Text("period: ${item.period}", style = MaterialTheme.typography.bodySmall)
+            if (item.description.isNotBlank()) {
+                Text(item.description, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
