@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -52,6 +53,7 @@ private class FakeUserApi(
         ApiResponse(success = true, data = onUpdate(id, request))
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 class UserRepositoryTest {
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; isLenient = true }
