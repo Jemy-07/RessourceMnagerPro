@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:mariadb://localhost:3306/rmp?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:Josh@977}
+    password: ${DB_PASSWORD:munji1280}
 
 # Verbose actuator + logging for local development only
 management:
