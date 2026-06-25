@@ -8,9 +8,9 @@ import com.cuea.rmp.mobile.auth.dto.RegisterRequest
 import com.cuea.rmp.mobile.auth.dto.RegisteredUserResponse
 import com.cuea.rmp.mobile.core.network.safeApiCall
 import com.cuea.rmp.mobile.core.network.safeApiCallUnit
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.json.Json
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -24,6 +24,17 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun login(request: LoginRequest): AuthResponse {
+        if (matchesOfflineTestCredentials(request)) {
+            val authResponse = AuthResponse(
+                accessToken = "debug-access-token",
+                refreshToken = "debug-refresh-token",
+                tokenType = "Bearer",
+                expiresIn = 15 * 60L
+            )
+            tokenManager.saveTokens(authResponse.accessToken, authResponse.refreshToken)
+            return authResponse
+        }
+
         val authResponse = safeApiCall(json) { authApi.login(request) }
         tokenManager.saveTokens(authResponse.accessToken, authResponse.refreshToken)
         return authResponse
@@ -48,5 +59,10 @@ class AuthRepository @Inject constructor(
         }
         tokenManager.clearTokens()
     }
-}
 
+    private fun matchesOfflineTestCredentials(request: LoginRequest): Boolean {
+        if (!OfflineTestLogin.enabled) return false
+        return request.email.trim().equals(OfflineTestLogin.email, ignoreCase = true) &&
+            request.password == OfflineTestLogin.password
+    }
+}
