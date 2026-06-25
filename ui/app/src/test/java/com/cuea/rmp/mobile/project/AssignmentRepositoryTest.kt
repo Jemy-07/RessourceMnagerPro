@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -71,6 +72,7 @@ private class FakeProjectApi(
     }
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 class AssignmentRepositoryTest {
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; isLenient = true }
