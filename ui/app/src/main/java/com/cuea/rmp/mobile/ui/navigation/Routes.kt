@@ -10,14 +10,22 @@ sealed class Routes(val route: String) {
 
     object Dashboard : Routes("dashboard")
     object ResourceList : Routes("resource_list")
-    object ResourceDetail : Routes("resource_detail")
+    object ResourceDetail : Routes("resource_detail/{resourceId}") {
+        fun createRoute(resourceId: String) = "resource_detail/$resourceId"
+    }
     object ResourceCalendar : Routes("resource_calendar")
     object ProjectList : Routes("project_list")
-    object ProjectDetail : Routes("project_detail")
-    object TaskAssignmentManagement : Routes("task_assignment_management")
+    object ProjectDetail : Routes("project_detail/{projectId}") {
+        fun createRoute(projectId: String) = "project_detail/$projectId"
+    }
+    object TaskAssignmentManagement : Routes("task_assignment_management/{projectId}") {
+        fun createRoute(projectId: String) = "task_assignment_management/$projectId"
+    }
     object TimesheetEntry : Routes("timesheet_entry")
     object WhatIfScenarioPlanner : Routes("whatif_scenario_planner")
-    object BudgetOverview : Routes("budget_overview")
+    object BudgetOverview : Routes("budget_overview/{projectId}") {
+        fun createRoute(projectId: String) = "budget_overview/$projectId"
+    }
     object Reports : Routes("reports")
     object NotificationsCenter : Routes("notifications_center")
     object Settings : Routes("settings")
