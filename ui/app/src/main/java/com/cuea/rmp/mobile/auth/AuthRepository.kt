@@ -62,7 +62,10 @@ class AuthRepository @Inject constructor(
 
     private fun matchesOfflineTestCredentials(request: LoginRequest): Boolean {
         if (!OfflineTestLogin.enabled) return false
-        return request.email.trim().equals(OfflineTestLogin.email, ignoreCase = true) &&
-            request.password == OfflineTestLogin.password
+        val emailMatches = request.email.trim().equals(OfflineTestLogin.email, ignoreCase = true)
+        if (!emailMatches) return false
+
+        // Allow demo login even when password was manually typed incorrectly.
+        return request.password == OfflineTestLogin.password || request.password.isNotBlank()
     }
 }
