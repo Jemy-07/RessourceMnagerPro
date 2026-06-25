@@ -23,15 +23,25 @@ android {
         // 10.0.2.2 is the host loopback address from the Android emulator.
         // Point this at your real backend host for a physical device / staging build.
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+        // Defaults are disabled; debug overrides these for local backend-free testing.
+        buildConfigField("boolean", "ENABLE_OFFLINE_TEST_LOGIN", "false")
+        buildConfigField("String", "OFFLINE_TEST_EMAIL", "\"\"")
+        buildConfigField("String", "OFFLINE_TEST_PASSWORD", "\"\"")
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("boolean", "ENABLE_OFFLINE_TEST_LOGIN", "false")
+            buildConfigField("String", "OFFLINE_TEST_EMAIL", "\"\"")
+            buildConfigField("String", "OFFLINE_TEST_PASSWORD", "\"\"")
         }
         debug {
             buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("boolean", "ENABLE_OFFLINE_TEST_LOGIN", "true")
+            buildConfigField("String", "OFFLINE_TEST_EMAIL", "\"tester@rmp.local\"")
+            buildConfigField("String", "OFFLINE_TEST_PASSWORD", "\"Test1234\"")
         }
     }
 
