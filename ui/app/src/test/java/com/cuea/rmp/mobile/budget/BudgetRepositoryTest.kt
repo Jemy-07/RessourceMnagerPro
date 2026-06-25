@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -47,6 +48,7 @@ private class FakeBudgetApi(
         ApiResponse(success = true, data = onAllocate(projectId, request))
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 class BudgetRepositoryTest {
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; isLenient = true }
@@ -101,7 +103,7 @@ class BudgetRepositoryTest {
             AllocateBudgetRequest(totalAmount = 5000.0, allocatedAmount = 5000.0, currency = "USD")
         )
 
-        assertEquals(5000.0, result.margin)
+        assertEquals(5000.0, result.margin, 0.0)
         assertEquals(5000.0, dao.observeByProject("p1").first()?.totalAmount)
     }
 }
