@@ -7,12 +7,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class SessionViewModel @Inject constructor(
-    tokenManager: TokenManager
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     val isAuthenticated: StateFlow<Boolean> = tokenManager.accessToken
@@ -22,5 +23,10 @@ class SessionViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false
         )
+
+    /** One-shot check used by the splash screen — reads the real DataStore value directly,
+     * rather than [isAuthenticated]'s placeholder default before its first emission. */
+    suspend fun awaitAuthenticationState(): Boolean =
+        !tokenManager.accessToken.first().isNullOrBlank()
 }
 
