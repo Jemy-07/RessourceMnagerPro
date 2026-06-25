@@ -1,13 +1,11 @@
 package com.cuea.rmp;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class RmpApplicationTests {
+/** Smoke test: the full application context loads against a real MariaDB. */
+class RmpApplicationTests extends AbstractIntegrationTest {
 
     @Test
     void contextLoads() {
     }
-
 }
