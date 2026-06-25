@@ -20,20 +20,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.cuea.rmp.mobile.ui.auth.AuthScreen
 import com.cuea.rmp.mobile.ui.auth.AuthViewModel
+import com.cuea.rmp.mobile.ui.budget.BudgetScreen
 import com.cuea.rmp.mobile.ui.navigation.Routes
 import com.cuea.rmp.mobile.ui.navigation.bottomNavDestinations
 import com.cuea.rmp.mobile.ui.notification.NotificationScreen
 import com.cuea.rmp.mobile.ui.notification.NotificationViewModel
+import com.cuea.rmp.mobile.ui.profile.ProfileScreen
+import com.cuea.rmp.mobile.ui.project.AssignmentScreen
+import com.cuea.rmp.mobile.ui.project.ProjectDetailScreen
 import com.cuea.rmp.mobile.ui.project.ProjectScreen
 import com.cuea.rmp.mobile.ui.project.ProjectViewModel
 import com.cuea.rmp.mobile.ui.request.RequestScreen
 import com.cuea.rmp.mobile.ui.request.RequestViewModel
+import com.cuea.rmp.mobile.ui.resource.ResourceDetailScreen
 import com.cuea.rmp.mobile.ui.resource.ResourceScreen
 import com.cuea.rmp.mobile.ui.resource.ResourceViewModel
 import com.cuea.rmp.mobile.ui.session.SessionViewModel
@@ -128,22 +135,61 @@ fun AppRoot(
             composable(Routes.Auth.route) { AuthScreen(viewModel = authViewModel) }
 
             composable(Routes.Dashboard.route) { PlaceholderScreen("Dashboard") }
-            composable(Routes.ResourceList.route) { ResourceScreen(viewModel = resourceViewModel) }
-            composable(Routes.ResourceDetail.route) { PlaceholderScreen("Resource Detail") }
+            composable(Routes.ResourceList.route) {
+                ResourceScreen(
+                    viewModel = resourceViewModel,
+                    onResourceClick = { resourceId ->
+                        navController.navigate(Routes.ResourceDetail.createRoute(resourceId))
+                    }
+                )
+            }
+            composable(
+                Routes.ResourceDetail.route,
+                arguments = listOf(navArgument("resourceId") { type = NavType.StringType })
+            ) {
+                ResourceDetailScreen()
+            }
             composable(Routes.ResourceCalendar.route) { PlaceholderScreen("Resource Calendar") }
-            composable(Routes.ProjectList.route) { ProjectScreen(viewModel = projectViewModel) }
-            composable(Routes.ProjectDetail.route) { PlaceholderScreen("Project Detail") }
-            composable(Routes.TaskAssignmentManagement.route) {
-                PlaceholderScreen("Task / Assignment Management")
+            composable(Routes.ProjectList.route) {
+                ProjectScreen(
+                    viewModel = projectViewModel,
+                    onProjectClick = { projectId ->
+                        navController.navigate(Routes.ProjectDetail.createRoute(projectId))
+                    }
+                )
+            }
+            composable(
+                Routes.ProjectDetail.route,
+                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+            ) {
+                ProjectDetailScreen(
+                    onManageAssignments = { projectId ->
+                        navController.navigate(Routes.TaskAssignmentManagement.createRoute(projectId))
+                    },
+                    onViewBudget = { projectId ->
+                        navController.navigate(Routes.BudgetOverview.createRoute(projectId))
+                    }
+                )
+            }
+            composable(
+                Routes.TaskAssignmentManagement.route,
+                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+            ) {
+                AssignmentScreen()
             }
             composable(Routes.TimesheetEntry.route) { TimesheetScreen(viewModel = timesheetViewModel) }
             composable(Routes.WhatIfScenarioPlanner.route) { PlaceholderScreen("What-If Scenario Planner") }
-            composable(Routes.BudgetOverview.route) { PlaceholderScreen("Budget Overview") }
+            composable(
+                Routes.BudgetOverview.route,
+                arguments = listOf(navArgument("projectId") { type = NavType.StringType })
+            ) {
+                BudgetScreen()
+            }
             composable(Routes.Reports.route) { PlaceholderScreen("Reports") }
             composable(Routes.NotificationsCenter.route) { NotificationScreen(viewModel = notificationViewModel) }
             composable(Routes.Settings.route) { PlaceholderScreen("Settings") }
             composable(Routes.Search.route) { PlaceholderScreen("Search") }
-            composable(Routes.Profile.route) { PlaceholderScreen("Profile") }
+            composable(Routes.Profile.route) { ProfileScreen() }
             composable(Routes.Help.route) { PlaceholderScreen("Help") }
             composable(Routes.Requests.route) { RequestScreen(viewModel = requestViewModel) }
         }
@@ -181,6 +227,13 @@ private fun AppTopBar(authViewModel: AuthViewModel, navController: NavHostContro
                     onClick = {
                         menuExpanded = false
                         navController.navigate(Routes.Requests.route)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Profile") },
+                    onClick = {
+                        menuExpanded = false
+                        navController.navigate(Routes.Profile.route)
                     }
                 )
             }
