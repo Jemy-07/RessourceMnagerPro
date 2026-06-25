@@ -33,6 +33,21 @@ fun AuthScreen(viewModel: AuthViewModel) {
             style = MaterialTheme.typography.headlineSmall
         )
 
+        if (!uiState.isRegister && uiState.showOfflineTestLogin) {
+            Text(
+                text = "Offline test login enabled",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Email: ${uiState.offlineTestEmail}\nPassword: ${uiState.offlineTestPassword}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            TextButton(onClick = viewModel::useOfflineTestCredentials) {
+                Text("Use test credentials")
+            }
+        }
+
         if (uiState.isRegister) {
             OutlinedTextField(
                 value = uiState.orgId,
@@ -90,5 +105,3 @@ fun AuthScreen(viewModel: AuthViewModel) {
         }
     }
 }
-
-
