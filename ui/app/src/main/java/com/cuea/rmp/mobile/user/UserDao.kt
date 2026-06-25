@@ -12,6 +12,9 @@ interface UserDao {
     @Query("SELECT * FROM users ORDER BY fullName ASC")
     fun observeAll(): Flow<List<UserLocalEntity>>
 
+    @Query("SELECT * FROM users WHERE id = :id")
+    fun observeById(id: String): Flow<UserLocalEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(users: List<UserLocalEntity>)
 
