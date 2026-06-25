@@ -12,6 +12,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY name ASC")
     fun observeAll(): Flow<List<ProjectLocalEntity>>
 
+    @Query("SELECT * FROM projects WHERE id = :id")
+    fun observeById(id: String): Flow<ProjectLocalEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(projects: List<ProjectLocalEntity>)
 
