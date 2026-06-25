@@ -1,0 +1,35 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: rmp-mariadb
+    environment:
+      MARIADB_DATABASE: rmp
+      MARIADB_ROOT_PASSWORD: Josh@977
+    ports:
+      - "3307:3306"   # host 3307 -> container 3306 (avoids clashing with a local MariaDB)
+    volumes:
+      - rmp-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: rmp-app
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev   # runs DataSeeder -> demo-ready
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/rmp?createDatabaseIfNotExist=true
+      DB_USERNAME: root
+      DB_PASSWORD: Josh@977
+      # APP_JWT_SECRET: <override in production>
+      # APP_FCM_SERVICE_ACCOUNT_PATH: /run/secrets/fcm.json  # enable real push
+    ports:
+      - "8080:8080"
+
+volumes:
+  rmp-data:
