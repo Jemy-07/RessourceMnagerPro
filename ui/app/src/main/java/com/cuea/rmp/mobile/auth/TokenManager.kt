@@ -56,5 +56,7 @@ class TokenManager @Inject constructor(
     suspend fun getAccessToken(): String? = accessToken.first()
 
     suspend fun getRefreshToken(): String? = refreshToken.first()
+
+    suspend fun getCurrentUserId(): String? = getAccessToken()?.let(JwtUtils::extractUserId)
 }
 
