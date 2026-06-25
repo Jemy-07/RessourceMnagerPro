@@ -12,6 +12,10 @@ interface BudgetDao {
     @Query("SELECT * FROM budgets ORDER BY projectId ASC")
     fun observeAll(): Flow<List<BudgetLocalEntity>>
 
+    // One budget per project (BudgetApi is keyed by projectId, not budget id).
+    @Query("SELECT * FROM budgets WHERE projectId = :projectId LIMIT 1")
+    fun observeByProject(projectId: String): Flow<BudgetLocalEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(budgets: List<BudgetLocalEntity>)
 
