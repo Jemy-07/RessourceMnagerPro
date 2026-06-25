@@ -12,6 +12,9 @@ interface ResourceDao {
     @Query("SELECT * FROM resources ORDER BY name ASC")
     fun observeAll(): Flow<List<ResourceLocalEntity>>
 
+    @Query("SELECT * FROM resources WHERE id = :id")
+    fun observeById(id: String): Flow<ResourceLocalEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(resources: List<ResourceLocalEntity>)
 
