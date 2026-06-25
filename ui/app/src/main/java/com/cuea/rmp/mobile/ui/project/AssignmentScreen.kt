@@ -154,20 +154,20 @@ private fun SkillsMatchSection(uiState: AssignmentUiState, viewModel: Assignment
             modifier = Modifier.fillMaxWidth()
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = uiState.matchFrom,
                 onValueChange = viewModel::onMatchFromChanged,
                 label = { Text("From (YYYY-MM-DD)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
             OutlinedTextField(
                 value = uiState.matchTo,
                 onValueChange = viewModel::onMatchToChanged,
                 label = { Text("To (YYYY-MM-DD)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
         }
 
