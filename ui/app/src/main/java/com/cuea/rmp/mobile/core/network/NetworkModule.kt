@@ -8,6 +8,7 @@ import com.cuea.rmp.mobile.notification.DeviceApi
 import com.cuea.rmp.mobile.notification.NotificationApi
 import com.cuea.rmp.mobile.project.AssignmentApi
 import com.cuea.rmp.mobile.project.ProjectApi
+import com.cuea.rmp.mobile.reporting.ReportApi
 import com.cuea.rmp.mobile.request.RequestApi
 import com.cuea.rmp.mobile.resource.ResourceApi
 import com.cuea.rmp.mobile.resource.SkillApi
@@ -174,6 +175,12 @@ object NetworkModule {
     @Singleton
     fun provideDeviceApi(@AuthenticatedRetrofit retrofit: Retrofit): DeviceApi {
         return retrofit.create(DeviceApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReportApi(@AuthenticatedRetrofit retrofit: Retrofit): ReportApi {
+        return retrofit.create(ReportApi::class.java)
     }
 }
 
