@@ -12,6 +12,7 @@ import com.cuea.rmp.mobile.reporting.ReportApi
 import com.cuea.rmp.mobile.request.RequestApi
 import com.cuea.rmp.mobile.resource.ResourceApi
 import com.cuea.rmp.mobile.resource.SkillApi
+import com.cuea.rmp.mobile.sync.SyncApi
 import com.cuea.rmp.mobile.timesheet.TimesheetApi
 import com.cuea.rmp.mobile.user.UserApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -181,6 +182,12 @@ object NetworkModule {
     @Singleton
     fun provideReportApi(@AuthenticatedRetrofit retrofit: Retrofit): ReportApi {
         return retrofit.create(ReportApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncApi(@AuthenticatedRetrofit retrofit: Retrofit): SyncApi {
+        return retrofit.create(SyncApi::class.java)
     }
 }
 
