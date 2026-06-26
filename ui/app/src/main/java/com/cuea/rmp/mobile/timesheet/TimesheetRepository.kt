@@ -103,6 +103,17 @@ class TimesheetRepository @Inject constructor(
                     )
                     timesheetDao.markFailed(mutation.localId, now)
                 }
+            } catch (throwable: Throwable) {
+                // Plain IOException (genuinely offline / no network) was previously
+                // uncaught here, leaving the mutation stuck at IN_FLIGHT forever since
+                // listByStatus never re-queries that status — found via the analogous
+                // RequestRepository test in Sprint 4.
+                pendingMutationDao.updateStatus(
+                    localId = mutation.localId,
+                    status = PendingMutationStatus.FAILED,
+                    lastError = throwable.message
+                )
+                timesheetDao.markFailed(mutation.localId, now)
             }
         }
     }
