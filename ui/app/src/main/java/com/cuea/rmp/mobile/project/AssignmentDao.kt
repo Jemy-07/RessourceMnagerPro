@@ -22,6 +22,12 @@ interface AssignmentDao {
     @Query("SELECT * FROM assignments WHERE resourceId = :resourceId ORDER BY startDate DESC")
     fun observeByResource(resourceId: String): Flow<List<AssignmentLocalEntity>>
 
+    // Dashboard "upcoming assignments" widget. Note this only sees whatever has already
+    // been cached via observeByProject/observeByResource refreshes — there's no backend
+    // "list all assignments" endpoint to populate this globally from a cold cache.
+    @Query("SELECT * FROM assignments WHERE startDate >= :today ORDER BY startDate ASC LIMIT :limit")
+    fun observeUpcoming(today: String, limit: Int): Flow<List<AssignmentLocalEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(assignments: List<AssignmentLocalEntity>)
 
