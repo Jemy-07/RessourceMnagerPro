@@ -72,6 +72,10 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // --- Charts (Reports / Dashboard) ---
+    implementation("com.patrykandpatrick.vico:compose:1.14.0")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.14.0")
+
     // --- Networking ---
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
