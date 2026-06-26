@@ -35,7 +35,7 @@ import com.cuea.rmp.mobile.user.UserLocalEntity
         BudgetLocalEntity::class,
         AuditLogLocalEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
