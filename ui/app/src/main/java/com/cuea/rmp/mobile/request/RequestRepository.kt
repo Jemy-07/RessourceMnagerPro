@@ -1,10 +1,8 @@
 package com.cuea.rmp.mobile.request
 
-import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.core.db.PendingMutationDao
 import com.cuea.rmp.mobile.core.db.PendingMutationEntity
 import com.cuea.rmp.mobile.core.db.PendingMutationStatus
-import com.cuea.rmp.mobile.core.network.ApiException
 import com.cuea.rmp.mobile.core.network.safeApiCall
 import com.cuea.rmp.mobile.request.dto.CreateRequestRequest
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +19,6 @@ class RequestRepository @Inject constructor(
     private val requestApi: RequestApi,
     private val requestDao: RequestDao,
     private val pendingMutationDao: PendingMutationDao,
-    private val tokenManager: TokenManager,
     private val json: Json
 ) {
 
@@ -77,7 +74,8 @@ class RequestRepository @Inject constructor(
         title: String,
         startDate: String,
         endDate: String,
-        allocationPct: Int
+        allocationPct: Int,
+        requesterId: String?
     ): String {
         val localId = UUID.randomUUID().toString()
         val now = Clock.System.now().toEpochMilliseconds()
@@ -95,7 +93,7 @@ class RequestRepository @Inject constructor(
             listOf(
                 RequestLocalEntity(
                     id = localId,
-                    requesterId = tokenManager.getCurrentUserId().orEmpty(),
+                    requesterId = requesterId.orEmpty(),
                     approverId = null,
                     resourceId = resourceId,
                     projectId = projectId,
@@ -145,11 +143,15 @@ class RequestRepository @Inject constructor(
                 safeApiCall(json) { requestApi.createRequest(request) }
                 pendingMutationDao.updateStatus(mutation.localId, PendingMutationStatus.SYNCED)
                 anySynced = true
-            } catch (apiException: ApiException) {
+            } catch (throwable: Throwable) {
+                // Catches plain IOException (genuinely offline / no network) as well as
+                // ApiException (server rejected it) — narrowing this to ApiException only
+                // left a mutation stuck at IN_FLIGHT forever when the device had no
+                // connectivity at all, since IN_FLIGHT is never re-queried by listByStatus.
                 pendingMutationDao.updateStatus(
                     localId = mutation.localId,
                     status = PendingMutationStatus.FAILED,
-                    lastError = apiException.message
+                    lastError = throwable.message
                 )
             }
         }
