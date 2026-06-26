@@ -7,6 +7,7 @@ import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.resource.ResourceRepository
 import com.cuea.rmp.mobile.sync.ConflictUi
 import com.cuea.rmp.mobile.sync.SyncRepository
+import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ class ResourceDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val resourceRepository: ResourceRepository,
     private val syncRepository: SyncRepository,
+    private val syncScheduler: SyncScheduler,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -80,6 +82,13 @@ class ResourceDetailViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
+            // Push any queued edit before pulling fresh data — pulling first would
+            // silently overwrite the locally-pending edit with stale server content
+            // (confirmed live: tapping Refresh while a manager edit sat queued wiped
+            // both the "pending sync" banner and the edited values off the screen).
+            // Swallowed separately: a push failure (e.g. still offline) shouldn't block
+            // the regular GET-based refresh below from at least trying.
+            runCatching { syncRepository.pushPendingMutations() }
             runCatching {
                 resourceRepository.refreshResource(resourceId)
                 // Learns the current clientVersion basis for any edit queued before the
@@ -157,6 +166,7 @@ class ResourceDetailViewModel @Inject constructor(
                     availabilityStatus = state.editAvailabilityStatus.trim()
                 )
             }.onSuccess {
+                syncScheduler.triggerImmediateSync()
                 _uiState.update { it.copy(isSaving = false, isEditing = false) }
             }.onFailure { throwable ->
                 _uiState.update {
