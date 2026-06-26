@@ -29,6 +29,7 @@ import androidx.navigation.navArgument
 import com.cuea.rmp.mobile.ui.auth.AuthScreen
 import com.cuea.rmp.mobile.ui.auth.AuthViewModel
 import com.cuea.rmp.mobile.ui.budget.BudgetScreen
+import com.cuea.rmp.mobile.ui.dashboard.DashboardScreen
 import com.cuea.rmp.mobile.ui.navigation.Routes
 import com.cuea.rmp.mobile.ui.navigation.bottomNavDestinations
 import com.cuea.rmp.mobile.ui.notification.NotificationScreen
@@ -38,6 +39,7 @@ import com.cuea.rmp.mobile.ui.project.AssignmentScreen
 import com.cuea.rmp.mobile.ui.project.ProjectDetailScreen
 import com.cuea.rmp.mobile.ui.project.ProjectScreen
 import com.cuea.rmp.mobile.ui.project.ProjectViewModel
+import com.cuea.rmp.mobile.ui.reporting.ReportScreen
 import com.cuea.rmp.mobile.ui.request.RequestScreen
 import com.cuea.rmp.mobile.ui.request.RequestViewModel
 import com.cuea.rmp.mobile.ui.resource.ResourceDetailScreen
@@ -134,7 +136,11 @@ fun AppRoot(
             }
             composable(Routes.Auth.route) { AuthScreen(viewModel = authViewModel) }
 
-            composable(Routes.Dashboard.route) { PlaceholderScreen("Dashboard") }
+            composable(Routes.Dashboard.route) {
+                DashboardScreen(
+                    onViewAllAlerts = { navController.navigate(Routes.NotificationsCenter.route) }
+                )
+            }
             composable(Routes.ResourceList.route) {
                 ResourceScreen(
                     viewModel = resourceViewModel,
@@ -185,7 +191,7 @@ fun AppRoot(
             ) {
                 BudgetScreen()
             }
-            composable(Routes.Reports.route) { PlaceholderScreen("Reports") }
+            composable(Routes.Reports.route) { ReportScreen() }
             composable(Routes.NotificationsCenter.route) { NotificationScreen(viewModel = notificationViewModel) }
             composable(Routes.Settings.route) { PlaceholderScreen("Settings") }
             composable(Routes.Search.route) { PlaceholderScreen("Search") }
