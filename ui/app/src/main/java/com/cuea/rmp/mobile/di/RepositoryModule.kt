@@ -98,10 +98,9 @@ object RepositoryModule {
         requestApi: RequestApi,
         requestDao: RequestDao,
         pendingMutationDao: PendingMutationDao,
-        tokenManager: TokenManager,
         json: Json
     ): RequestRepository {
-        return RequestRepository(requestApi, requestDao, pendingMutationDao, tokenManager, json)
+        return RequestRepository(requestApi, requestDao, pendingMutationDao, json)
     }
 
     @Provides
