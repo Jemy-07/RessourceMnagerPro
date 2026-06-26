@@ -35,12 +35,14 @@ fun AuthScreen(viewModel: AuthViewModel) {
 
         if (!uiState.isRegister && uiState.showOfflineTestLogin) {
             Text(
-                text = "Offline test login enabled",
+                text = "Offline test login (UI/navigation only — no backend calls)",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Email: ${uiState.offlineTestEmail}\nPassword: ${uiState.offlineTestPassword}",
+                text = "Email: ${uiState.offlineTestEmail}\nPassword: ${uiState.offlineTestPassword}\n" +
+                    "Screens that load backend data will show a clear error instead of data. " +
+                    "Use a real account (e.g. admin@cuea.edu) to test against the live backend.",
                 style = MaterialTheme.typography.bodySmall
             )
             TextButton(onClick = viewModel::useOfflineTestCredentials) {
