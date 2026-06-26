@@ -18,6 +18,25 @@ interface ResourceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(resources: List<ResourceLocalEntity>)
 
+    @Query(
+        "UPDATE resources SET syncVersion = :version, serverUpdatedAt = :updatedAt, " +
+            "pendingEdit = 0 WHERE id = :id"
+    )
+    suspend fun applySyncMetadata(id: String, version: Long, updatedAt: String)
+
+    @Query(
+        "UPDATE resources SET name = :name, hourlyRateAmount = :hourlyRateAmount, " +
+            "currency = :currency, availabilityStatus = :availabilityStatus, " +
+            "pendingEdit = 1 WHERE id = :id"
+    )
+    suspend fun applyLocalEdit(
+        id: String,
+        name: String,
+        hourlyRateAmount: Double,
+        currency: String,
+        availabilityStatus: String
+    )
+
     @Query("DELETE FROM resources")
     suspend fun clearAll()
 }
