@@ -1,5 +1,6 @@
 package com.cuea.rmp.mobile.core.network
 
+import com.cuea.rmp.mobile.auth.OfflineTestLogin
 import com.cuea.rmp.mobile.auth.TokenManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -15,6 +16,11 @@ class AuthInterceptor @Inject constructor(
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val accessToken = runBlocking { tokenManager.accessToken.first() }
+
+        if (accessToken == OfflineTestLogin.sentinelAccessToken) {
+            throw OfflineTestSessionException()
+        }
+
         val requestBuilder = chain.request().newBuilder()
 
         if (!accessToken.isNullOrBlank()) {
