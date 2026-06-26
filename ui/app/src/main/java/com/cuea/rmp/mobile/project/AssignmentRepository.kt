@@ -5,6 +5,9 @@ import com.cuea.rmp.mobile.project.dto.AssignResourceRequest
 import com.cuea.rmp.mobile.project.dto.AssignmentResponse
 import com.cuea.rmp.mobile.project.dto.UpdateAssignmentRequest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,6 +29,11 @@ class AssignmentRepository @Inject constructor(
 
     fun observeAssignmentsForResource(resourceId: String): Flow<List<AssignmentLocalEntity>> =
         assignmentDao.observeByResource(resourceId)
+
+    fun observeUpcomingAssignments(limit: Int = 5): Flow<List<AssignmentLocalEntity>> {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault()).toString()
+        return assignmentDao.observeUpcoming(today, limit)
+    }
 
     suspend fun refreshAssignmentsForProject(projectId: String) {
         val assignments = safeApiCall(json) { projectApi.getAssignmentsByProject(projectId) }
