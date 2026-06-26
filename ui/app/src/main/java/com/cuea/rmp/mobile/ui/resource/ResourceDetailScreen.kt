@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cuea.rmp.mobile.sync.ConflictUi
 
 @Composable
 fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
@@ -46,6 +49,30 @@ fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
                 "skills: ${resource.skillsSummary.ifBlank { "none recorded" }}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            if (uiState.pendingEdit) {
+                Text(
+                    "Edit pending sync — will push next time the device is online.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (uiState.conflicts.isNotEmpty()) {
+            ConflictsCard(uiState.conflicts)
+        }
+
+        // ResourceController's update/addSkill endpoints are ADMIN/MANAGER-only server-side
+        // (Sprint 3.5 RBAC audit) — hidden rather than shown-then-403'd for other roles.
+        if (uiState.canEdit) {
+            HorizontalDivider()
+            if (uiState.isEditing) {
+                ResourceEditForm(uiState = uiState, viewModel = viewModel)
+            } else {
+                OutlinedButton(onClick = viewModel::startEdit, modifier = Modifier.fillMaxWidth()) {
+                    Text("Edit resource")
+                }
+            }
         }
 
         HorizontalDivider()
@@ -83,5 +110,74 @@ fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
 
         uiState.availabilityError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         uiState.availabilityResult?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+    }
+}
+
+@Composable
+private fun ResourceEditForm(uiState: ResourceDetailUiState, viewModel: ResourceDetailViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Edit resource", style = MaterialTheme.typography.titleMedium)
+
+        OutlinedTextField(
+            value = uiState.editName,
+            onValueChange = viewModel::onEditNameChanged,
+            label = { Text("Name") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = uiState.editRateAmount,
+                onValueChange = viewModel::onEditRateAmountChanged,
+                label = { Text("Hourly rate") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = uiState.editCurrency,
+                onValueChange = viewModel::onEditCurrencyChanged,
+                label = { Text("Currency") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        OutlinedTextField(
+            value = uiState.editAvailabilityStatus,
+            onValueChange = viewModel::onEditAvailabilityStatusChanged,
+            label = { Text("Availability status") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        uiState.editError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = viewModel::saveEdit, enabled = !uiState.isSaving) {
+                Text(if (uiState.isSaving) "Saving..." else "Save")
+            }
+            OutlinedButton(onClick = viewModel::cancelEdit) {
+                Text("Cancel")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConflictsCard(conflicts: List<ConflictUi>) {
+    Card {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Sync conflicts", style = MaterialTheme.typography.titleMedium)
+            conflicts.forEach { conflict ->
+                val outcome = if (conflict.resolution == "CLIENT_WON") {
+                    "Your edit was applied"
+                } else {
+                    "Your edit was discarded — someone else's change won"
+                }
+                Text(outcome, style = MaterialTheme.typography.bodyMedium)
+                Text(conflict.message, style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
