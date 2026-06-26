@@ -27,6 +27,7 @@ private class FakeAssignmentDao : AssignmentDao {
     override fun observeAll(): Flow<List<AssignmentLocalEntity>> = rows
     override fun observeByProject(projectId: String): Flow<List<AssignmentLocalEntity>> = rows
     override fun observeByResource(resourceId: String): Flow<List<AssignmentLocalEntity>> = rows
+    override fun observeUpcoming(today: String, limit: Int): Flow<List<AssignmentLocalEntity>> = rows
 
     override suspend fun upsertAll(assignments: List<AssignmentLocalEntity>) {
         val byId = rows.value.associateBy { it.id }.toMutableMap()
