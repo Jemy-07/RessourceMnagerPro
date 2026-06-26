@@ -2,6 +2,7 @@ package com.cuea.rmp.mobile.ui.request
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.request.RequestRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,7 +15,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class RequestViewModel @Inject constructor(
-    private val requestRepository: RequestRepository
+    private val requestRepository: RequestRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RequestUiState())
@@ -47,6 +49,58 @@ class RequestViewModel @Inject constructor(
 
     fun onRejectCommentChanged(value: String) {
         _uiState.update { it.copy(rejectComment = value) }
+    }
+
+    fun onNewResourceIdChanged(value: String) = _uiState.update { it.copy(newResourceId = value) }
+    fun onNewProjectIdChanged(value: String) = _uiState.update { it.copy(newProjectId = value) }
+    fun onNewTitleChanged(value: String) = _uiState.update { it.copy(newTitle = value) }
+    fun onNewStartDateChanged(value: String) = _uiState.update { it.copy(newStartDate = value) }
+    fun onNewEndDateChanged(value: String) = _uiState.update { it.copy(newEndDate = value) }
+    fun onNewAllocationPctChanged(value: String) = _uiState.update { it.copy(newAllocationPct = value) }
+
+    // Visible to every role (RequestController.create is isAuthenticated()-only, unlike
+    // Resource/Project's ADMIN/MANAGER-gated writes) — works offline via the same
+    // REST-replay queue Timesheet uses, since a create has nothing to conflict against.
+    fun createRequest() {
+        val state = _uiState.value
+        val allocationPct = state.newAllocationPct.toIntOrNull()
+        if (state.newResourceId.isBlank() || state.newProjectId.isBlank() || state.newTitle.isBlank() ||
+            state.newStartDate.isBlank() || state.newEndDate.isBlank() || allocationPct == null
+        ) {
+            _uiState.update { it.copy(errorMessage = "Fill in all fields with a valid allocation %") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCreating = true, errorMessage = null) }
+            runCatching {
+                requestRepository.createRequestOffline(
+                    resourceId = state.newResourceId.trim(),
+                    projectId = state.newProjectId.trim(),
+                    title = state.newTitle.trim(),
+                    startDate = state.newStartDate.trim(),
+                    endDate = state.newEndDate.trim(),
+                    allocationPct = allocationPct,
+                    requesterId = tokenManager.getCurrentUserId()
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        isCreating = false,
+                        newResourceId = "",
+                        newProjectId = "",
+                        newTitle = "",
+                        newStartDate = "",
+                        newEndDate = "",
+                        newAllocationPct = ""
+                    )
+                }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(isCreating = false, errorMessage = throwable.message ?: "Could not create request")
+                }
+            }
+        }
     }
 
     fun refresh() {
@@ -105,7 +159,15 @@ data class RequestUiState(
     val requests: List<RequestItemUi> = emptyList(),
     val rejectComment: String = "",
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    val newResourceId: String = "",
+    val newProjectId: String = "",
+    val newTitle: String = "",
+    val newStartDate: String = "",
+    val newEndDate: String = "",
+    val newAllocationPct: String = "",
+    val isCreating: Boolean = false
 )
 
 data class RequestItemUi(
