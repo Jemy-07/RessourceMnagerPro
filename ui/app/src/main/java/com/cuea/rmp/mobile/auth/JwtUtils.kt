@@ -11,13 +11,21 @@ import kotlinx.serialization.json.jsonPrimitive
 // is only trusted to the same degree it's already trusted as a bearer credential.
 object JwtUtils {
 
-    fun extractUserId(accessToken: String): String? {
+    fun extractUserId(accessToken: String): String? = extractClaim(accessToken, "sub")
+
+    // JwtTokenProvider.java also puts the user's role in a "role" claim — used to gate
+    // edit UI client-side for endpoints known to be ADMIN/MANAGER-only server-side (see
+    // Sprint 3.5 RBAC audit), so a MEMBER session never sees an edit button that would
+    // just 403 on tap.
+    fun extractRole(accessToken: String): String? = extractClaim(accessToken, "role")
+
+    private fun extractClaim(accessToken: String, claim: String): String? {
         val parts = accessToken.split(".")
         if (parts.size < 2) return null
 
         return try {
             val payload = String(decodeBase64Url(parts[1]))
-            Json.parseToJsonElement(payload).jsonObject["sub"]?.jsonPrimitive?.content
+            Json.parseToJsonElement(payload).jsonObject[claim]?.jsonPrimitive?.content
         } catch (_: Exception) {
             null
         }
