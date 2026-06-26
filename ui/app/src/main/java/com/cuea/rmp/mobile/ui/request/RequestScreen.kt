@@ -2,12 +2,14 @@ package com.cuea.rmp.mobile.ui.request
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +34,15 @@ fun RequestScreen(viewModel: RequestViewModel) {
             Text(if (uiState.isRefreshing) "Refreshing..." else "Refresh requests")
         }
 
+        uiState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        // Visible to every role — RequestController.create is open to any authenticated
+        // user (unlike Resource/Project edits, which are ADMIN/MANAGER-only). Works
+        // offline: queued locally and replayed once the device is back online.
+        NewRequestForm(uiState = uiState, viewModel = viewModel)
+
+        HorizontalDivider()
+
         OutlinedTextField(
             value = uiState.rejectComment,
             onValueChange = viewModel::onRejectCommentChanged,
@@ -39,8 +50,6 @@ fun RequestScreen(viewModel: RequestViewModel) {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
-
-        uiState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -53,6 +62,67 @@ fun RequestScreen(viewModel: RequestViewModel) {
                     onReject = { viewModel.reject(item.id) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NewRequestForm(uiState: RequestUiState, viewModel: RequestViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("New request", style = MaterialTheme.typography.titleMedium)
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = uiState.newResourceId,
+                onValueChange = viewModel::onNewResourceIdChanged,
+                label = { Text("Resource ID (UUID)") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = uiState.newProjectId,
+                onValueChange = viewModel::onNewProjectIdChanged,
+                label = { Text("Project ID (UUID)") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        OutlinedTextField(
+            value = uiState.newTitle,
+            onValueChange = viewModel::onNewTitleChanged,
+            label = { Text("Title") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = uiState.newStartDate,
+                onValueChange = viewModel::onNewStartDateChanged,
+                label = { Text("Start date (YYYY-MM-DD)") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = uiState.newEndDate,
+                onValueChange = viewModel::onNewEndDateChanged,
+                label = { Text("End date (YYYY-MM-DD)") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        OutlinedTextField(
+            value = uiState.newAllocationPct,
+            onValueChange = viewModel::onNewAllocationPctChanged,
+            label = { Text("Allocation %") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(onClick = viewModel::createRequest, enabled = !uiState.isCreating) {
+            Text(if (uiState.isCreating) "Creating..." else "Create request")
         }
     }
 }
