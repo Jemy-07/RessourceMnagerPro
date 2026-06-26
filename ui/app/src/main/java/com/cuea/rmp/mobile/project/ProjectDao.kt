@@ -18,6 +18,25 @@ interface ProjectDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(projects: List<ProjectLocalEntity>)
 
+    @Query(
+        "UPDATE projects SET syncVersion = :version, serverUpdatedAt = :updatedAt, " +
+            "pendingEdit = 0 WHERE id = :id"
+    )
+    suspend fun applySyncMetadata(id: String, version: Long, updatedAt: String)
+
+    @Query(
+        "UPDATE projects SET name = :name, description = :description, startDate = :startDate, " +
+            "endDate = :endDate, status = :status, pendingEdit = 1 WHERE id = :id"
+    )
+    suspend fun applyLocalEdit(
+        id: String,
+        name: String,
+        description: String?,
+        startDate: String,
+        endDate: String,
+        status: String
+    )
+
     @Query("DELETE FROM projects")
     suspend fun clearAll()
 }
