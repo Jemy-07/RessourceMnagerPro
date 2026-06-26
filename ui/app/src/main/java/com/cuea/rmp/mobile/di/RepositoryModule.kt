@@ -75,9 +75,10 @@ object RepositoryModule {
     fun provideResourceRepository(
         resourceApi: ResourceApi,
         resourceDao: ResourceDao,
+        pendingMutationDao: PendingMutationDao,
         json: Json
     ): ResourceRepository {
-        return ResourceRepository(resourceApi, resourceDao, json)
+        return ResourceRepository(resourceApi, resourceDao, pendingMutationDao, json)
     }
 
     @Provides
@@ -85,9 +86,10 @@ object RepositoryModule {
     fun provideProjectRepository(
         projectApi: ProjectApi,
         projectDao: ProjectDao,
+        pendingMutationDao: PendingMutationDao,
         json: Json
     ): ProjectRepository {
-        return ProjectRepository(projectApi, projectDao, json)
+        return ProjectRepository(projectApi, projectDao, pendingMutationDao, json)
     }
 
     @Provides
@@ -95,9 +97,11 @@ object RepositoryModule {
     fun provideRequestRepository(
         requestApi: RequestApi,
         requestDao: RequestDao,
+        pendingMutationDao: PendingMutationDao,
+        tokenManager: TokenManager,
         json: Json
     ): RequestRepository {
-        return RequestRepository(requestApi, requestDao, json)
+        return RequestRepository(requestApi, requestDao, pendingMutationDao, tokenManager, json)
     }
 
     @Provides
