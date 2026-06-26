@@ -8,6 +8,7 @@ import com.cuea.rmp.mobile.project.AssignmentRepository
 import com.cuea.rmp.mobile.project.ProjectRepository
 import com.cuea.rmp.mobile.sync.ConflictUi
 import com.cuea.rmp.mobile.sync.SyncRepository
+import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ class ProjectDetailViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val assignmentRepository: AssignmentRepository,
     private val syncRepository: SyncRepository,
+    private val syncScheduler: SyncScheduler,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -87,6 +89,10 @@ class ProjectDetailViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
+            // Push any queued edit before pulling fresh data — see
+            // ResourceDetailViewModel.refresh for why (confirmed live: a manual refresh
+            // otherwise silently overwrites a locally-pending edit with stale server data).
+            runCatching { syncRepository.pushPendingMutations() }
             runCatching {
                 projectRepository.refreshProject(projectId)
                 assignmentRepository.refreshAssignmentsForProject(projectId)
@@ -131,6 +137,7 @@ class ProjectDetailViewModel @Inject constructor(
                     status = state.editStatus.trim()
                 )
             }.onSuccess {
+                syncScheduler.triggerImmediateSync()
                 _uiState.update { it.copy(isSaving = false, isEditing = false) }
             }.onFailure { throwable ->
                 _uiState.update {
