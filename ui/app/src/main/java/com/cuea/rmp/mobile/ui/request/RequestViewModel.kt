@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.request.RequestRepository
+import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class RequestViewModel @Inject constructor(
     private val requestRepository: RequestRepository,
+    private val syncScheduler: SyncScheduler,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -84,6 +86,7 @@ class RequestViewModel @Inject constructor(
                     requesterId = tokenManager.getCurrentUserId()
                 )
             }.onSuccess {
+                syncScheduler.triggerImmediateSync()
                 _uiState.update {
                     it.copy(
                         isCreating = false,
@@ -106,6 +109,11 @@ class RequestViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
+            // Push any queued create first — refreshRequests() clears and replaces the
+            // entire local cache from the server list, which would otherwise silently
+            // delete an unsynced optimistic placeholder row that has no server counterpart
+            // yet (the same class of bug fixed in ResourceDetailViewModel.refresh).
+            runCatching { requestRepository.syncPendingRequests() }
             runCatching {
                 requestRepository.refreshRequests()
             }.onSuccess {
