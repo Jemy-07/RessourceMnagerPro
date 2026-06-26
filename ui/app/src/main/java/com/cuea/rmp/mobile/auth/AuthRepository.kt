@@ -26,8 +26,8 @@ class AuthRepository @Inject constructor(
     suspend fun login(request: LoginRequest): AuthResponse {
         if (matchesOfflineTestCredentials(request)) {
             val authResponse = AuthResponse(
-                accessToken = "debug-access-token",
-                refreshToken = "debug-refresh-token",
+                accessToken = OfflineTestLogin.sentinelAccessToken,
+                refreshToken = OfflineTestLogin.sentinelRefreshToken,
                 tokenType = "Bearer",
                 expiresIn = 15 * 60L
             )
