@@ -38,6 +38,7 @@ class TokenManager @Inject constructor(
 
     val accessToken: Flow<String?> = preferences.map { prefs -> prefs[Keys.AccessToken] }
     val refreshToken: Flow<String?> = preferences.map { prefs -> prefs[Keys.RefreshToken] }
+    val role: Flow<String?> = accessToken.map { token -> token?.let(JwtUtils::extractRole) }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
         context.authDataStore.edit { prefs ->
@@ -58,5 +59,7 @@ class TokenManager @Inject constructor(
     suspend fun getRefreshToken(): String? = refreshToken.first()
 
     suspend fun getCurrentUserId(): String? = getAccessToken()?.let(JwtUtils::extractUserId)
+
+    suspend fun getCurrentRole(): String? = getAccessToken()?.let(JwtUtils::extractRole)
 }
 
