@@ -28,6 +28,9 @@ import javax.inject.Singleton
  */
 private val SYNC_ENGINE_ENTITY_TYPES = setOf("RESOURCE", "PROJECT")
 
+/** UI-facing view of a recorded conflict outcome — see AuditLogLocalEntity for the stored shape. */
+data class ConflictUi(val resolution: String, val message: String, val occurredAt: String)
+
 @Singleton
 class SyncRepository @Inject constructor(
     private val syncApi: SyncApi,
