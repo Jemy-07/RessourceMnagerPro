@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PendingMutationDao {
@@ -17,7 +18,17 @@ interface PendingMutationDao {
     @Query("SELECT * FROM pending_mutations WHERE localId = :localId LIMIT 1")
     suspend fun getById(localId: String): PendingMutationEntity?
 
-    @Query("UPDATE pending_mutations SET status = :status, lastError = :lastError WHERE localId = :localId")
-    suspend fun updateStatus(localId: String, status: PendingMutationStatus, lastError: String? = null)
+    // Drives the "sync failed" UI state (Cleanup Half-Sprint) — every domain's repository
+    // filters this by its own entityType rather than each having a bespoke query.
+    @Query("SELECT * FROM pending_mutations")
+    fun observeAll(): Flow<List<PendingMutationEntity>>
+
+    @Query("UPDATE pending_mutations SET status = :status, lastError = :lastError, permanentFailure = :permanentFailure WHERE localId = :localId")
+    suspend fun updateStatus(
+        localId: String,
+        status: PendingMutationStatus,
+        lastError: String? = null,
+        permanentFailure: Boolean = false
+    )
 }
 
