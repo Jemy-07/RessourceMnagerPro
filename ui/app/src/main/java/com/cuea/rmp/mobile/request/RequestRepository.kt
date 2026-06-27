@@ -5,7 +5,11 @@ import com.cuea.rmp.mobile.core.db.PendingMutationEntity
 import com.cuea.rmp.mobile.core.db.PendingMutationStatus
 import com.cuea.rmp.mobile.core.network.safeApiCall
 import com.cuea.rmp.mobile.request.dto.CreateRequestRequest
+import com.cuea.rmp.mobile.sync.SyncFailureUi
+import com.cuea.rmp.mobile.sync.isPermanentSyncFailure
+import com.cuea.rmp.mobile.sync.toFailureUi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.encodeToString
@@ -13,6 +17,8 @@ import kotlinx.serialization.json.Json
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val ENTITY_TYPE = "REQUEST"
 
 @Singleton
 class RequestRepository @Inject constructor(
@@ -23,6 +29,12 @@ class RequestRepository @Inject constructor(
 ) {
 
     fun observeRequests(): Flow<List<RequestLocalEntity>> = requestDao.observeAll()
+
+    /** Sync-relevant failures for queued request creates — see [SyncFailureUi]. */
+    fun observeSyncFailures(): Flow<List<SyncFailureUi>> = pendingMutationDao.observeAll().map { list ->
+        list.filter { it.entityType == ENTITY_TYPE && it.status == PendingMutationStatus.FAILED }
+            .map { it.toFailureUi() }
+    }
 
     suspend fun refreshRequests(status: String? = null) {
         val requests = safeApiCall(json) {
@@ -111,7 +123,7 @@ class RequestRepository @Inject constructor(
         pendingMutationDao.upsert(
             PendingMutationEntity(
                 localId = localId,
-                entityType = "REQUEST",
+                entityType = ENTITY_TYPE,
                 httpMethod = "POST",
                 path = "api/v1/requests",
                 bodyJson = json.encodeToString(request),
@@ -120,45 +132,66 @@ class RequestRepository @Inject constructor(
             )
         )
 
-        // Best-effort immediate sync while online; worker retry covers offline path.
-        runCatching { syncPendingRequests(limit = 1) }
+        // Targets this specific mutation rather than "whatever's oldest" — see
+        // syncMutation's doc comment for why (head-of-line blocking, Cleanup Half-Sprint).
+        runCatching { syncMutation(localId) }
 
         return localId
     }
 
+    /** Processes the full queue in createdAt order — used by the periodic/background worker. */
     suspend fun syncPendingRequests(limit: Int = 25) {
         val pending = pendingMutationDao.listByStatus(
             statuses = listOf(PendingMutationStatus.PENDING, PendingMutationStatus.FAILED),
             limit = limit
-        ).filter { it.entityType == "REQUEST" }
+        ).filter { it.entityType == ENTITY_TYPE }
 
         if (pending.isEmpty()) return
 
         var anySynced = false
-        pending.forEach { mutation ->
-            pendingMutationDao.updateStatus(mutation.localId, PendingMutationStatus.IN_FLIGHT)
-            val request = json.decodeFromString<CreateRequestRequest>(mutation.bodyJson)
-
-            try {
-                safeApiCall(json) { requestApi.createRequest(request) }
-                pendingMutationDao.updateStatus(mutation.localId, PendingMutationStatus.SYNCED)
-                anySynced = true
-            } catch (throwable: Throwable) {
-                // Catches plain IOException (genuinely offline / no network) as well as
-                // ApiException (server rejected it) — narrowing this to ApiException only
-                // left a mutation stuck at IN_FLIGHT forever when the device had no
-                // connectivity at all, since IN_FLIGHT is never re-queried by listByStatus.
-                pendingMutationDao.updateStatus(
-                    localId = mutation.localId,
-                    status = PendingMutationStatus.FAILED,
-                    lastError = throwable.message
-                )
-            }
-        }
+        pending.forEach { mutation -> if (syncOne(mutation)) anySynced = true }
 
         // Replaces the optimistic local placeholder with the server-assigned row.
         if (anySynced) {
             runCatching { refreshRequests() }
+        }
+    }
+
+    // Targets exactly one mutation by id — used right after a create, in the same coroutine,
+    // instead of relying on the FIFO full-queue path above. Without this, a brand-new
+    // request's own "sync now" attempt could be diverted into retrying an older, already
+    // -stuck mutation (confirmed live: an older RESOURCE_UNAVAILABLE-rejected request
+    // delayed a new, unrelated one's sync until the next full refresh).
+    suspend fun syncMutation(localId: String) {
+        val mutation = pendingMutationDao.getById(localId)
+            ?.takeIf { it.entityType == ENTITY_TYPE && it.status != PendingMutationStatus.SYNCED }
+            ?: return
+        if (syncOne(mutation)) {
+            runCatching { refreshRequests() }
+        }
+    }
+
+    /** Returns true if this mutation synced successfully. */
+    private suspend fun syncOne(mutation: PendingMutationEntity): Boolean {
+        pendingMutationDao.updateStatus(mutation.localId, PendingMutationStatus.IN_FLIGHT)
+        val request = json.decodeFromString<CreateRequestRequest>(mutation.bodyJson)
+
+        return try {
+            safeApiCall(json) { requestApi.createRequest(request) }
+            pendingMutationDao.updateStatus(mutation.localId, PendingMutationStatus.SYNCED)
+            true
+        } catch (throwable: Throwable) {
+            // Catches plain IOException (genuinely offline / no network) as well as
+            // ApiException (server rejected it) — narrowing this to ApiException only
+            // left a mutation stuck at IN_FLIGHT forever when the device had no
+            // connectivity at all, since IN_FLIGHT is never re-queried by listByStatus.
+            pendingMutationDao.updateStatus(
+                localId = mutation.localId,
+                status = PendingMutationStatus.FAILED,
+                lastError = throwable.message,
+                permanentFailure = throwable.isPermanentSyncFailure()
+            )
+            false
         }
     }
 }
