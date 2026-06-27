@@ -17,5 +17,10 @@ interface RequestDao {
 
     @Query("DELETE FROM requests")
     suspend fun clearAll()
+
+    // Empty keepIds deletes everything (SQLite: "x NOT IN ()" is true for every row),
+    // matching clearAll()'s behavior when there's nothing local-only left to preserve.
+    @Query("DELETE FROM requests WHERE id NOT IN (:keepIds)")
+    suspend fun deleteAllExcept(keepIds: List<String>)
 }
 
