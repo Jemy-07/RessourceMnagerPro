@@ -17,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.cuea.rmp.mobile.ui.common.SyncFailureCard
 
 @Composable
 fun TimesheetScreen(viewModel: TimesheetViewModel) {
@@ -90,14 +91,14 @@ fun TimesheetScreen(viewModel: TimesheetViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(uiState.entries, key = { it.id }) { entry ->
-                TimesheetEntryCard(entry = entry)
+                TimesheetEntryCard(entry = entry, onRetrySync = { viewModel.retrySync(entry.id) })
             }
         }
     }
 }
 
 @Composable
-private fun TimesheetEntryCard(entry: TimesheetEntryUi) {
+private fun TimesheetEntryCard(entry: TimesheetEntryUi, onRetrySync: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,6 +108,11 @@ private fun TimesheetEntryCard(entry: TimesheetEntryUi) {
         Text("resource: ${entry.resourceId}", style = MaterialTheme.typography.bodySmall)
         Text("assignment: ${entry.assignmentId}", style = MaterialTheme.typography.bodySmall)
         Text("status: ${entry.syncState}", style = MaterialTheme.typography.bodySmall)
+        // syncState alone only ever showed the bare word "FAILED" with no explanation —
+        // this adds the actual backend message and a way to act on it (Cleanup Half-Sprint).
+        entry.syncFailure?.let { failure ->
+            SyncFailureCard(failure = failure, onRetry = onRetrySync, modifier = Modifier.fillMaxWidth())
+        }
     }
 }
 
