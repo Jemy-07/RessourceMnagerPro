@@ -1,7 +1,15 @@
 package com.cuea.rmp.mobile.auth
 
+/**
+ * Offline Test Login Configuration
+ *
+ * SET enabled = false TO TEST WITH REAL BACKEND
+ * SET enabled = true FOR UI-ONLY DEMO (no backend needed)
+ */
 object OfflineTestLogin {
-    const val enabled: Boolean = true
+    // ⚠️ TOGGLE THIS TO SWITCH BETWEEN MODES ⚠️
+    const val enabled: Boolean = false  // Changed to false for real backend testing
+
     const val email: String = "tester@rmp.local"
     const val password: String = "Test1234"
 
