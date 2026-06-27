@@ -34,6 +34,10 @@ private class FakeRequestDao : RequestDao {
     override suspend fun clearAll() {
         rows.value = emptyList()
     }
+
+    override suspend fun deleteAllExcept(keepIds: List<String>) {
+        rows.value = rows.value.filter { it.id in keepIds }
+    }
 }
 
 private class FakePendingMutationDaoForRequest : PendingMutationDao {
@@ -60,7 +64,8 @@ private class FakePendingMutationDaoForRequest : PendingMutationDao {
 
 private class FakeRequestApi(
     private val failCreateWith: Throwable? = null,
-    private val failForResourceIds: Set<String> = emptySet()
+    private val failForResourceIds: Set<String> = emptySet(),
+    private val listRequestsResult: List<RequestResponse> = emptyList()
 ) : RequestApi {
     override suspend fun createRequest(request: CreateRequestRequest): ApiResponse<RequestResponse> {
         if (request.resourceId in failForResourceIds) throw IOException("resource $request.resourceId is permanently broken")
@@ -81,7 +86,7 @@ private class FakeRequestApi(
         )
     }
 
-    override suspend fun listRequests(status: String?): ApiResponse<List<RequestResponse>> = ApiResponse(success = true, data = emptyList())
+    override suspend fun listRequests(status: String?): ApiResponse<List<RequestResponse>> = ApiResponse(success = true, data = listRequestsResult)
     override suspend fun approveRequest(id: String): ApiResponse<RequestResponse> = error("not used")
     override suspend fun rejectRequest(id: String, request: RejectRequestRequest): ApiResponse<RequestResponse> = error("not used")
 }
@@ -173,5 +178,105 @@ class RequestRepositoryTest {
         val oldMutation = pendingMutationDao.getById("old-stuck")
         assertEquals(PendingMutationStatus.FAILED, oldMutation?.status)
         assertEquals("Resource is not available for the requested window", oldMutation?.lastError)
+    }
+
+    @Test
+    fun `refreshRequests preserves a still-unsynced local placeholder instead of wiping it`() = runTest {
+        val dao = FakeRequestDao()
+        dao.rows.value = listOf(
+            RequestLocalEntity(
+                id = "server-1", requesterId = "u1", approverId = null,
+                resourceId = "r1", projectId = "p1", title = "Already on server",
+                startDate = "2026-01-01", endDate = "2026-01-02", allocationPct = 50,
+                status = "PENDING", comments = null, decidedAt = null
+            ),
+            RequestLocalEntity(
+                id = "local-stuck", requesterId = "u1", approverId = null,
+                resourceId = "r2", projectId = "p1", title = "Permanently stuck",
+                startDate = "2026-02-01", endDate = "2026-02-02", allocationPct = 30,
+                status = "PENDING", comments = null, decidedAt = null
+            )
+        )
+        val pendingMutationDao = FakePendingMutationDaoForRequest()
+        // The stuck row's create mutation failed permanently (e.g. a real
+        // RESOURCE_UNAVAILABLE 409) and has no counterpart in the server's list.
+        pendingMutationDao.upsert(
+            PendingMutationEntity(
+                localId = "local-stuck",
+                entityType = "REQUEST",
+                httpMethod = "POST",
+                path = "api/v1/requests",
+                bodyJson = "{}",
+                createdAt = 0L,
+                status = PendingMutationStatus.FAILED,
+                lastError = "Resource is not available for the requested window",
+                permanentFailure = true
+            )
+        )
+
+        val api = FakeRequestApi(
+            listRequestsResult = listOf(
+                RequestResponse(
+                    id = "server-1", requesterId = "u1", resourceId = "r1", projectId = "p1",
+                    title = "Already on server", startDate = LocalDate.parse("2026-01-01"),
+                    endDate = LocalDate.parse("2026-01-02"), allocationPct = 50, status = "PENDING"
+                )
+            )
+        )
+        val repository = RequestRepository(api, dao, pendingMutationDao, json)
+
+        repository.refreshRequests()
+
+        // A plain clear+replace would have wiped "local-stuck" since the server has never
+        // heard of it -- it must survive because its mutation is still FAILED, not SYNCED.
+        val rows = dao.observeAll().first()
+        assertEquals(2, rows.size)
+        assertTrue(rows.any { it.id == "server-1" })
+        assertTrue(rows.any { it.id == "local-stuck" })
+    }
+
+    @Test
+    fun `refreshRequests drops the local placeholder once its mutation has synced, leaving no duplicate`() = runTest {
+        val dao = FakeRequestDao()
+        dao.rows.value = listOf(
+            RequestLocalEntity(
+                id = "local-id", requesterId = "u1", approverId = null,
+                resourceId = "r1", projectId = "p1", title = "Now fixed and retried",
+                startDate = "2026-03-01", endDate = "2026-03-02", allocationPct = 20,
+                status = "PENDING", comments = null, decidedAt = null
+            )
+        )
+        val pendingMutationDao = FakePendingMutationDaoForRequest()
+        // The mutation has already SYNCED (the user fixed the underlying issue and
+        // retried) -- its local placeholder row is now superseded by the server's row
+        // for that same create, under a different (server-assigned) id.
+        pendingMutationDao.upsert(
+            PendingMutationEntity(
+                localId = "local-id",
+                entityType = "REQUEST",
+                httpMethod = "POST",
+                path = "api/v1/requests",
+                bodyJson = "{}",
+                createdAt = 0L,
+                status = PendingMutationStatus.SYNCED
+            )
+        )
+
+        val api = FakeRequestApi(
+            listRequestsResult = listOf(
+                RequestResponse(
+                    id = "server-id", requesterId = "u1", resourceId = "r1", projectId = "p1",
+                    title = "Now fixed and retried", startDate = LocalDate.parse("2026-03-01"),
+                    endDate = LocalDate.parse("2026-03-02"), allocationPct = 20, status = "PENDING"
+                )
+            )
+        )
+        val repository = RequestRepository(api, dao, pendingMutationDao, json)
+
+        repository.refreshRequests()
+
+        val rows = dao.observeAll().first()
+        assertEquals(1, rows.size)
+        assertEquals("server-id", rows.first().id)
     }
 }
