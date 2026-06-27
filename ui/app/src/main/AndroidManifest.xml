@@ -33,6 +33,29 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
+        <!--
+          Disables WorkManager's default on-demand initializer (an androidx.startup
+          ContentProvider, which always runs before Application.onCreate()). Left enabled,
+          it reads RmpApplication's Configuration.Provider before Hilt has injected
+          workerFactory, silently falls back to the default WorkerFactory, and every
+          @HiltWorker (SyncWorker) then fails with NoSuchMethodException trying to use a
+          plain (Context, WorkerParameters) constructor it doesn't have (Cleanup
+          Half-Sprint). Removing this forces WorkManager to initialize lazily on the first
+          WorkManager.getInstance(context) call instead — which happens via
+          RmpApplication's own syncScheduler field injection, safely after workerFactory
+          is set (confirmed via the generated MembersInjector's field-injection order).
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!-- Lets exported report PDFs (saved to app-scoped storage, no runtime
              permission needed) be shared/opened via a content:// Uri. -->
         <provider
