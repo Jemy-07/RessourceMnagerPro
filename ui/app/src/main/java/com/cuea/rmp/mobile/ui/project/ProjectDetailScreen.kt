@@ -20,6 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cuea.rmp.mobile.sync.ConflictUi
+import com.cuea.rmp.mobile.ui.common.EnumDropdownField
+import com.cuea.rmp.mobile.ui.common.SyncFailureCard
+
+private val PROJECT_STATUS_OPTIONS = listOf("PLANNED", "ACTIVE", "ON_HOLD", "DONE")
 
 @Composable
 fun ProjectDetailScreen(
@@ -63,6 +67,10 @@ fun ProjectDetailScreen(
 
         if (uiState.conflicts.isNotEmpty()) {
             ProjectConflictsCard(uiState.conflicts)
+        }
+
+        uiState.syncFailure?.let { failure ->
+            SyncFailureCard(failure = failure, onRetry = viewModel::retrySync, modifier = Modifier.fillMaxWidth())
         }
 
         // ProjectController's update endpoint is ADMIN/MANAGER-only server-side (Sprint
@@ -135,11 +143,11 @@ private fun ProjectEditForm(uiState: ProjectDetailUiState, viewModel: ProjectDet
             )
         }
 
-        OutlinedTextField(
-            value = uiState.editStatus,
-            onValueChange = viewModel::onEditStatusChanged,
-            label = { Text("Status") },
-            singleLine = true,
+        EnumDropdownField(
+            label = "Status",
+            options = PROJECT_STATUS_OPTIONS,
+            selected = uiState.editStatus,
+            onSelected = viewModel::onEditStatusChanged,
             modifier = Modifier.fillMaxWidth()
         )
 
