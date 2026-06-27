@@ -78,9 +78,12 @@ private class FakePendingMutationDao : PendingMutationDao {
 
     override suspend fun getById(localId: String): PendingMutationEntity? = rows.firstOrNull { it.localId == localId }
 
-    override suspend fun updateStatus(localId: String, status: PendingMutationStatus, lastError: String?) {
+    override fun observeAll(): kotlinx.coroutines.flow.Flow<List<PendingMutationEntity>> =
+        kotlinx.coroutines.flow.flowOf(rows)
+
+    override suspend fun updateStatus(localId: String, status: PendingMutationStatus, lastError: String?, permanentFailure: Boolean) {
         val index = rows.indexOfFirst { it.localId == localId }
-        if (index >= 0) rows[index] = rows[index].copy(status = status, lastError = lastError)
+        if (index >= 0) rows[index] = rows[index].copy(status = status, lastError = lastError, permanentFailure = permanentFailure)
     }
 }
 
