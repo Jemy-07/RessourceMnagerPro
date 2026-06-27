@@ -60,6 +60,7 @@ class ProjectRepository @Inject constructor(
 
     // Offline edit: same generic-sync-engine pattern as ResourceRepository.editResourceOffline
     // — see that doc comment for why this goes through /sync/push and not the regular PUT.
+    /** Returns the queued mutation's localId — callers use it to target an immediate push. */
     suspend fun editProjectOffline(
         id: String,
         name: String,
@@ -67,7 +68,7 @@ class ProjectRepository @Inject constructor(
         startDate: String,
         endDate: String,
         status: String
-    ) {
+    ): String {
         val current = projectDao.observeById(id).first()
             ?: error("Project $id is not cached locally — refresh before editing")
         val now = Clock.System.now()
@@ -95,9 +96,10 @@ class ProjectRepository @Inject constructor(
             clientVersion = current.syncVersion
         )
 
+        val localId = "PROJECT:$id"
         pendingMutationDao.upsert(
             PendingMutationEntity(
-                localId = "PROJECT:$id",
+                localId = localId,
                 entityType = "PROJECT",
                 httpMethod = "POST",
                 path = "api/v1/sync/push",
@@ -106,6 +108,7 @@ class ProjectRepository @Inject constructor(
                 status = PendingMutationStatus.PENDING
             )
         )
+        return localId
     }
 }
 
