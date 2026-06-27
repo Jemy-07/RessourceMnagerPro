@@ -2,6 +2,7 @@ package com.cuea.rmp.mobile.ui.timesheet
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cuea.rmp.mobile.sync.SyncFailureUi
 import com.cuea.rmp.mobile.sync.SyncScheduler
 import com.cuea.rmp.mobile.timesheet.LocalSyncState
 import com.cuea.rmp.mobile.timesheet.TimesheetLocalEntity
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -26,10 +28,20 @@ class TimesheetViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            timesheetRepository.observeLocalTimesheets().collectLatest { entries ->
-                _uiState.update { it.copy(entries = entries.map { entry -> entry.toUi() }) }
+            combine(
+                timesheetRepository.observeLocalTimesheets(),
+                timesheetRepository.observeSyncFailures()
+            ) { entries, failures ->
+                val failuresById = failures.associateBy { it.localId }
+                entries.map { entry -> entry.toUi(failuresById[entry.id]) }
+            }.collectLatest { items ->
+                _uiState.update { it.copy(entries = items) }
             }
         }
+    }
+
+    fun retrySync(id: String) {
+        viewModelScope.launch { runCatching { timesheetRepository.syncMutation(id) } }
     }
 
     fun onResourceIdChanged(value: String) {
@@ -104,10 +116,11 @@ data class TimesheetEntryUi(
     val assignmentId: String,
     val workDate: String,
     val hours: String,
-    val syncState: String
+    val syncState: String,
+    val syncFailure: SyncFailureUi? = null
 )
 
-private fun TimesheetLocalEntity.toUi(): TimesheetEntryUi {
+private fun TimesheetLocalEntity.toUi(failure: SyncFailureUi?): TimesheetEntryUi {
     val syncLabel = when (syncState) {
         LocalSyncState.PENDING_SYNC -> "PENDING"
         LocalSyncState.SYNCED -> "SYNCED"
@@ -120,7 +133,8 @@ private fun TimesheetLocalEntity.toUi(): TimesheetEntryUi {
         assignmentId = assignmentId,
         workDate = workDate.toString(),
         hours = hours.toString(),
-        syncState = syncLabel
+        syncState = syncLabel,
+        syncFailure = failure
     )
 }
 
