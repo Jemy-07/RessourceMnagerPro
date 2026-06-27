@@ -41,7 +41,7 @@ class RequestRepository @Inject constructor(
             requestApi.listRequests(status = status)
         }
 
-        val local = requests.map { item ->
+        val serverRows = requests.map { item ->
             RequestLocalEntity(
                 id = item.id,
                 requesterId = item.requesterId,
@@ -58,8 +58,20 @@ class RequestRepository @Inject constructor(
             )
         }
 
-        requestDao.clearAll()
-        requestDao.upsertAll(local)
+        // Local optimistic-create rows whose mutation hasn't reached the server yet
+        // (still PENDING, IN_FLIGHT, or permanently FAILED) have no counterpart in the
+        // server list and must survive this refresh — a plain clear+replace silently
+        // deleted them (failure card included) the moment ANY refresh ran, including the
+        // implicit one in init{} (Cleanup Half-Sprint #2). Once a mutation reaches SYNCED,
+        // its placeholder row is naturally superseded by the server's row for that same
+        // create (a different id) and is safe to drop here.
+        val unsyncedLocalIds = pendingMutationDao.listByStatus(
+            statuses = listOf(PendingMutationStatus.PENDING, PendingMutationStatus.IN_FLIGHT, PendingMutationStatus.FAILED),
+            limit = Int.MAX_VALUE
+        ).filter { it.entityType == ENTITY_TYPE }.map { it.localId }
+
+        requestDao.deleteAllExcept(serverRows.map { it.id } + unsyncedLocalIds)
+        requestDao.upsertAll(serverRows)
     }
 
     suspend fun approve(id: String) {
