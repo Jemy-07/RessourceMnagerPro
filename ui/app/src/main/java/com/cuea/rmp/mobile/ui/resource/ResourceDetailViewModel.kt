@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.resource.ResourceRepository
 import com.cuea.rmp.mobile.sync.ConflictUi
+import com.cuea.rmp.mobile.sync.SyncFailureUi
 import com.cuea.rmp.mobile.sync.SyncRepository
 import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +30,7 @@ class ResourceDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val resourceId: String = checkNotNull(savedStateHandle["resourceId"])
+    private val localId = "RESOURCE:$resourceId"
 
     private val _uiState = MutableStateFlow(ResourceDetailUiState())
     val uiState: StateFlow<ResourceDetailUiState> = _uiState.asStateFlow()
@@ -76,7 +78,19 @@ class ResourceDetailViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            syncRepository.observeSyncFailures().collectLatest { failures ->
+                _uiState.update {
+                    it.copy(syncFailure = failures.firstOrNull { f -> f.localId == localId })
+                }
+            }
+        }
+
         refresh()
+    }
+
+    fun retrySync() {
+        viewModelScope.launch { runCatching { syncRepository.pushMutation(localId) } }
     }
 
     fun refresh() {
@@ -165,9 +179,16 @@ class ResourceDetailViewModel @Inject constructor(
                     currency = state.editCurrency.trim(),
                     availabilityStatus = state.editAvailabilityStatus.trim()
                 )
-            }.onSuccess {
-                syncScheduler.triggerImmediateSync()
+            }.onSuccess { queuedLocalId ->
                 _uiState.update { it.copy(isSaving = false, isEditing = false) }
+                // Targets just this mutation rather than "whatever's oldest in the queue"
+                // (head-of-line blocking fix) — a push failure here doesn't mean the edit
+                // was lost, just that it's not synced yet; observeSyncFailures() above
+                // surfaces that separately rather than through editError.
+                runCatching { syncRepository.pushMutation(queuedLocalId) }
+                // Resilience fallback: still ask the worker to retry later (e.g. if the
+                // process dies right after this call, or the device is genuinely offline).
+                syncScheduler.triggerImmediateSync()
             }.onFailure { throwable ->
                 _uiState.update {
                     it.copy(isSaving = false, editError = throwable.message ?: "Could not save the edit")
@@ -197,7 +218,8 @@ data class ResourceDetailUiState(
     val editRateAmount: String = "",
     val editCurrency: String = "",
     val editAvailabilityStatus: String = "",
-    val conflicts: List<ConflictUi> = emptyList()
+    val conflicts: List<ConflictUi> = emptyList(),
+    val syncFailure: SyncFailureUi? = null
 )
 
 data class ResourceDetailUi(
