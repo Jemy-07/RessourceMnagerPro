@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.cuea.rmp.mobile.ui.common.SyncFailureCard
 
 @Composable
 fun RequestScreen(viewModel: RequestViewModel) {
@@ -59,7 +60,8 @@ fun RequestScreen(viewModel: RequestViewModel) {
                 RequestCard(
                     item = item,
                     onApprove = { viewModel.approve(item.id) },
-                    onReject = { viewModel.reject(item.id) }
+                    onReject = { viewModel.reject(item.id) },
+                    onRetrySync = { viewModel.retrySync(item.id) }
                 )
             }
         }
@@ -131,7 +133,8 @@ private fun NewRequestForm(uiState: RequestUiState, viewModel: RequestViewModel)
 private fun RequestCard(
     item: RequestItemUi,
     onApprove: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    onRetrySync: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -147,6 +150,13 @@ private fun RequestCard(
         Text("allocation: ${item.allocationPct}%", style = MaterialTheme.typography.bodySmall)
         if (item.comments.isNotBlank()) {
             Text("comments: ${item.comments}", style = MaterialTheme.typography.bodySmall)
+        }
+
+        // This row's "PENDING" looks identical to a normal awaiting-approval request even
+        // when it never actually reached the server — the failure card below is what
+        // distinguishes the two (used to be indistinguishable, Cleanup Half-Sprint).
+        item.syncFailure?.let { failure ->
+            SyncFailureCard(failure = failure, onRetry = onRetrySync, modifier = Modifier.fillMaxWidth())
         }
 
         if (item.status == "PENDING") {
