@@ -20,6 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cuea.rmp.mobile.sync.ConflictUi
+import com.cuea.rmp.mobile.ui.common.EnumDropdownField
+import com.cuea.rmp.mobile.ui.common.SyncFailureCard
+
+private val AVAILABILITY_STATUS_OPTIONS = listOf("AVAILABLE", "UNAVAILABLE")
 
 @Composable
 fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
@@ -60,6 +64,10 @@ fun ResourceDetailScreen(viewModel: ResourceDetailViewModel = hiltViewModel()) {
 
         if (uiState.conflicts.isNotEmpty()) {
             ConflictsCard(uiState.conflicts)
+        }
+
+        uiState.syncFailure?.let { failure ->
+            SyncFailureCard(failure = failure, onRetry = viewModel::retrySync, modifier = Modifier.fillMaxWidth())
         }
 
         // ResourceController's update/addSkill endpoints are ADMIN/MANAGER-only server-side
@@ -143,11 +151,11 @@ private fun ResourceEditForm(uiState: ResourceDetailUiState, viewModel: Resource
             )
         }
 
-        OutlinedTextField(
-            value = uiState.editAvailabilityStatus,
-            onValueChange = viewModel::onEditAvailabilityStatusChanged,
-            label = { Text("Availability status") },
-            singleLine = true,
+        EnumDropdownField(
+            label = "Availability status",
+            options = AVAILABILITY_STATUS_OPTIONS,
+            selected = uiState.editAvailabilityStatus,
+            onSelected = viewModel::onEditAvailabilityStatusChanged,
             modifier = Modifier.fillMaxWidth()
         )
 
