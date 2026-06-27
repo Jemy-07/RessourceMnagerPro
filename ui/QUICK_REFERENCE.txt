@@ -1,0 +1,109 @@
+ar╔══════════════════════════════════════════════════════════════╗
+║         RESOURCE MANAGER PRO - QUICK REFERENCE CARD          ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🚀 START THE APP (3 COMMANDS)                                │
+└──────────────────────────────────────────────────────────────┘
+
+  1. cd C:\Users\Munji\projects\RessourceMnagerPro\ui
+  2. .\gradlew.bat :app:installDebug
+  3. adb shell am start -n com.cuea.rmp.mobile/.MainActivity
+
+  OR: Just run .\start-app.ps1
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ⚙️  TESTING MODE CONFIGURATION                                │
+└──────────────────────────────────────────────────────────────┘
+
+  📝 Edit: app/src/main/java/com/cuea/rmp/mobile/auth/OfflineTestLogin.kt
+
+  For REAL BACKEND testing:  const val enabled: Boolean = false
+  For OFFLINE DEMO:          const val enabled: Boolean = true
+
+  After changing, rebuild: .\gradlew.bat :app:installDebug
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🔐 LOGIN CREDENTIALS                                          │
+└──────────────────────────────────────────────────────────────┘
+
+  REAL BACKEND (enabled = false):
+    1. Start backend: cd ..\api\ResourceManagerPro; .\mvnw.cmd spring-boot:run
+    2. Use admin@cuea.edu (check backend logs for password)
+    3. OR register new account in app
+
+  OFFLINE DEMO (enabled = true):
+    Email:    tester@rmp.local
+    Password: test123 (any text works)
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📱 APP FEATURES TO DEMO                                       │
+└──────────────────────────────────────────────────────────────┘
+
+  ⏱️  TIMESHEETS    - Log work hours offline-first
+  🔔  NOTIFICATIONS - View system alerts
+  👥  RESOURCES     - Browse team availability
+  📂  PROJECTS      - View active projects
+  📋  REQUESTS      - Approve/reject allocations
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🔧 TROUBLESHOOTING                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  No device?
+    → Start emulator in Android Studio first
+
+  App crashes?
+    → adb uninstall com.cuea.rmp.mobile
+    → .\gradlew.bat :app:installDebug
+
+  Restart app?
+    → adb shell am force-stop com.cuea.rmp.mobile
+    → adb shell am start -n com.cuea.rmp.mobile/.MainActivity
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📊 USEFUL COMMANDS                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  Check devices:     adb devices
+  View logs:         adb logcat --pid=$(adb shell pidof -s com.cuea.rmp.mobile)
+  Take screenshot:   adb exec-out screencap -p > demo.png
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 💡 PRESENTATION TIPS                                          │
+└──────────────────────────────────────────────────────────────┘
+
+  ✓ Use demo login (tester@rmp.local) - no backend needed
+  ✓ Log a timesheet to show offline-first capability
+  ✓ Navigate through all 5 tabs
+  ✓ Show pull-to-refresh on list screens
+  ✓ Emphasize sync status indicators (PENDING_SYNC → SYNCED)
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📞 EMERGENCY FIXES                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  App frozen?
+    → adb shell am force-stop com.cuea.rmp.mobile
+
+  Need to clear app data?
+    → adb shell pm clear com.cuea.rmp.mobile
+
+  Gradle issues?
+    → $env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
+    → .\gradlew.bat clean
+
+
+═══════════════════════════════════════════════════════════════
+ 📁 Location: C:\Users\Munji\projects\RessourceMnagerPro\ui
+ 📖 Full guide: STARTUP_GUIDE.md
+═══════════════════════════════════════════════════════════════
+
+
