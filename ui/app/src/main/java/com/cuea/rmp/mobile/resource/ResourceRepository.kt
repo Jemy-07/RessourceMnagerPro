@@ -74,13 +74,14 @@ class ResourceRepository @Inject constructor(
     // concurrent edit the way the sync engine does). clientVersion is whatever was last
     // learned from /sync/pull (see refreshSyncMetadata) — 0 if this resource was never
     // pulled, which is only safe if nobody has edited it since it was created.
+    /** Returns the queued mutation's localId — callers use it to target an immediate push. */
     suspend fun editResourceOffline(
         id: String,
         name: String,
         hourlyRateAmount: Double,
         currency: String,
         availabilityStatus: String
-    ) {
+    ): String {
         val current = resourceDao.observeById(id).first()
             ?: error("Resource $id is not cached locally — refresh before editing")
         val now = Clock.System.now()
@@ -106,9 +107,10 @@ class ResourceRepository @Inject constructor(
             clientVersion = current.syncVersion
         )
 
+        val localId = "RESOURCE:$id"
         pendingMutationDao.upsert(
             PendingMutationEntity(
-                localId = "RESOURCE:$id",
+                localId = localId,
                 entityType = "RESOURCE",
                 httpMethod = "POST",
                 path = "api/v1/sync/push",
@@ -117,6 +119,7 @@ class ResourceRepository @Inject constructor(
                 status = PendingMutationStatus.PENDING
             )
         )
+        return localId
     }
 }
 
