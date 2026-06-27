@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.request.RequestRepository
+import com.cuea.rmp.mobile.sync.SyncFailureUi
 import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -26,27 +28,34 @@ class RequestViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            requestRepository.observeRequests().collectLatest { list ->
-                _uiState.update {
-                    it.copy(
-                        requests = list.map { entry ->
-                            RequestItemUi(
-                                id = entry.id,
-                                title = entry.title,
-                                resourceId = entry.resourceId,
-                                projectId = entry.projectId,
-                                period = "${entry.startDate} to ${entry.endDate}",
-                                allocationPct = entry.allocationPct,
-                                status = entry.status,
-                                comments = entry.comments.orEmpty()
-                            )
-                        }
+            combine(
+                requestRepository.observeRequests(),
+                requestRepository.observeSyncFailures()
+            ) { list, failures ->
+                val failuresById = failures.associateBy { it.localId }
+                list.map { entry ->
+                    RequestItemUi(
+                        id = entry.id,
+                        title = entry.title,
+                        resourceId = entry.resourceId,
+                        projectId = entry.projectId,
+                        period = "${entry.startDate} to ${entry.endDate}",
+                        allocationPct = entry.allocationPct,
+                        status = entry.status,
+                        comments = entry.comments.orEmpty(),
+                        syncFailure = failuresById[entry.id]
                     )
                 }
+            }.collectLatest { items ->
+                _uiState.update { it.copy(requests = items) }
             }
         }
 
         refresh()
+    }
+
+    fun retrySync(requestId: String) {
+        viewModelScope.launch { runCatching { requestRepository.syncMutation(requestId) } }
     }
 
     fun onRejectCommentChanged(value: String) {
@@ -186,6 +195,7 @@ data class RequestItemUi(
     val period: String,
     val allocationPct: Int,
     val status: String,
-    val comments: String
+    val comments: String,
+    val syncFailure: SyncFailureUi? = null
 )
 
