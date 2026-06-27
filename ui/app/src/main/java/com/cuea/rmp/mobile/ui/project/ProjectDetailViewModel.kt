@@ -7,6 +7,7 @@ import com.cuea.rmp.mobile.auth.TokenManager
 import com.cuea.rmp.mobile.project.AssignmentRepository
 import com.cuea.rmp.mobile.project.ProjectRepository
 import com.cuea.rmp.mobile.sync.ConflictUi
+import com.cuea.rmp.mobile.sync.SyncFailureUi
 import com.cuea.rmp.mobile.sync.SyncRepository
 import com.cuea.rmp.mobile.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ class ProjectDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     val projectId: String = checkNotNull(savedStateHandle["projectId"])
+    private val localId = "PROJECT:$projectId"
 
     private val _uiState = MutableStateFlow(ProjectDetailUiState())
     val uiState: StateFlow<ProjectDetailUiState> = _uiState.asStateFlow()
@@ -83,7 +85,19 @@ class ProjectDetailViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            syncRepository.observeSyncFailures().collectLatest { failures ->
+                _uiState.update {
+                    it.copy(syncFailure = failures.firstOrNull { f -> f.localId == localId })
+                }
+            }
+        }
+
         refresh()
+    }
+
+    fun retrySync() {
+        viewModelScope.launch { runCatching { syncRepository.pushMutation(localId) } }
     }
 
     fun refresh() {
@@ -136,9 +150,13 @@ class ProjectDetailViewModel @Inject constructor(
                     endDate = state.editEndDate.trim(),
                     status = state.editStatus.trim()
                 )
-            }.onSuccess {
-                syncScheduler.triggerImmediateSync()
+            }.onSuccess { queuedLocalId ->
                 _uiState.update { it.copy(isSaving = false, isEditing = false) }
+                // Targets just this mutation rather than "whatever's oldest in the queue"
+                // (head-of-line blocking fix) — failures surface via observeSyncFailures()
+                // above, not through editError, since the edit itself did queue correctly.
+                runCatching { syncRepository.pushMutation(queuedLocalId) }
+                syncScheduler.triggerImmediateSync()
             }.onFailure { throwable ->
                 _uiState.update {
                     it.copy(isSaving = false, editError = throwable.message ?: "Could not save the edit")
@@ -164,7 +182,8 @@ data class ProjectDetailUiState(
     val editStartDate: String = "",
     val editEndDate: String = "",
     val editStatus: String = "",
-    val conflicts: List<ConflictUi> = emptyList()
+    val conflicts: List<ConflictUi> = emptyList(),
+    val syncFailure: SyncFailureUi? = null
 )
 
 data class ProjectDetailUi(
