@@ -3,6 +3,7 @@ package com.cuea.rmp.mobile.sync
 import com.cuea.rmp.mobile.core.db.PendingMutationDao
 import com.cuea.rmp.mobile.core.db.PendingMutationEntity
 import com.cuea.rmp.mobile.core.db.PendingMutationStatus
+import com.cuea.rmp.mobile.core.network.ApiException
 import com.cuea.rmp.mobile.core.network.ApiResponse
 import com.cuea.rmp.mobile.core.network.PageResult
 import com.cuea.rmp.mobile.project.ProjectApi
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
@@ -101,17 +103,19 @@ private class FakeProjectApiForSync : ProjectApi {
 }
 
 private class FakePendingMutationDaoForSync : PendingMutationDao {
-    val rows = mutableListOf<PendingMutationEntity>()
+    val state = MutableStateFlow<List<PendingMutationEntity>>(emptyList())
+
     override suspend fun upsert(entity: PendingMutationEntity) {
-        rows.removeAll { it.localId == entity.localId }
-        rows.add(entity)
+        state.update { list -> list.filterNot { it.localId == entity.localId } + entity }
     }
     override suspend fun listByStatus(statuses: List<PendingMutationStatus>, limit: Int): List<PendingMutationEntity> =
-        rows.filter { it.status in statuses }.take(limit)
-    override suspend fun getById(localId: String): PendingMutationEntity? = rows.firstOrNull { it.localId == localId }
-    override suspend fun updateStatus(localId: String, status: PendingMutationStatus, lastError: String?) {
-        val index = rows.indexOfFirst { it.localId == localId }
-        if (index >= 0) rows[index] = rows[index].copy(status = status, lastError = lastError)
+        state.value.filter { it.status in statuses }.sortedBy { it.createdAt }.take(limit)
+    override suspend fun getById(localId: String): PendingMutationEntity? = state.value.firstOrNull { it.localId == localId }
+    override fun observeAll(): Flow<List<PendingMutationEntity>> = state
+    override suspend fun updateStatus(localId: String, status: PendingMutationStatus, lastError: String?, permanentFailure: Boolean) {
+        state.update { list ->
+            list.map { if (it.localId == localId) it.copy(status = status, lastError = lastError, permanentFailure = permanentFailure) else it }
+        }
     }
 }
 
@@ -125,13 +129,15 @@ private class FakeAuditLogDao : AuditLogDao {
 }
 
 private class FakeSyncApi(
-    private val pushResult: PushResultResponse,
-    private val pullResult: PullResultResponse = PullResultResponse("2026-01-01T00:00:00Z", 0, emptyList())
+    private val pushResult: PushResultResponse? = null,
+    private val pullResult: PullResultResponse = PullResultResponse("2026-01-01T00:00:00Z", 0, emptyList()),
+    private val failPushWith: Throwable? = null
 ) : SyncApi {
     var lastPushRequest: SyncPushRequest? = null
 
     override suspend fun push(request: SyncPushRequest): ApiResponse<PushResultResponse> {
         lastPushRequest = request
+        failPushWith?.let { throw it }
         return ApiResponse(success = true, data = pushResult)
     }
 
@@ -252,5 +258,99 @@ class SyncRepositoryTest {
 
         assertTrue(syncRepository.observeConflicts().first().isEmpty())
         assertEquals(PendingMutationStatus.SYNCED, pendingMutationDao.getById("RESOURCE:r2")?.status)
+    }
+
+    @Test
+    fun `a permanent push failure is surfaced as UI-facing state instead of being silently discarded`() = runTest {
+        val resourceDao = FakeResourceDaoForSync()
+        resourceDao.rows.value = listOf(
+            ResourceLocalEntity(
+                id = "r3", orgId = "org1", userId = null, name = "Carol", type = "HUMAN",
+                hourlyRateAmount = 90.0, currency = "USD", availabilityStatus = "AVAILABLE",
+                skillsSummary = "", syncVersion = 0
+            )
+        )
+        val resourceApi = FakeResourceApiForSync(
+            ResourceResponse(id = "r3", orgId = "org1", userId = null, name = "Carol", type = "HUMAN", hourlyRateAmount = 90.0, currency = "USD", availabilityStatus = "AVAILABLE")
+        )
+        val resourceRepository = buildResourceRepository(resourceApi, resourceDao)
+
+        val pendingMutationDao = FakePendingMutationDaoForSync()
+        val entry = SyncEntryRequest("RESOURCE", "r3", emptyMap(), "2026-01-01T00:00:00Z", 0)
+        pendingMutationDao.upsert(
+            PendingMutationEntity("RESOURCE:r3", "RESOURCE", "POST", "api/v1/sync/push", json.encodeToString(entry), 0L, PendingMutationStatus.PENDING)
+        )
+
+        // Simulates the real 422 observed live in the Cleanup Half-Sprint: a bad enum
+        // value rejected by the backend's deserialization, surfaced as a 4xx ApiException.
+        val validationFailure = ApiException(code = "SYNC_APPLY_FAILED", message = "Cannot deserialize value of type AvailabilityStatus from String \"BUSY\"", statusCode = 422)
+        val syncApi = FakeSyncApi(failPushWith = validationFailure)
+        val syncRepository = SyncRepository(syncApi, pendingMutationDao, FakeAuditLogDao(), resourceRepository, buildProjectRepository(), json)
+
+        // Previously this exception propagated out and was swallowed by a bare
+        // runCatching {} at every call site — nothing else observed it.
+        runCatching { syncRepository.pushPendingMutations() }
+
+        val failures = syncRepository.observeSyncFailures().first()
+        assertEquals(1, failures.size)
+        assertEquals("RESOURCE:r3", failures.first().localId)
+        assertTrue(failures.first().isPermanent)
+        assertTrue(failures.first().message.contains("AvailabilityStatus"))
+
+        assertEquals(PendingMutationStatus.FAILED, pendingMutationDao.getById("RESOURCE:r3")?.status)
+        assertTrue(pendingMutationDao.getById("RESOURCE:r3")?.permanentFailure == true)
+    }
+
+    @Test
+    fun `pushMutation targets one specific mutation rather than whatever is oldest in the queue`() = runTest {
+        val resourceDao = FakeResourceDaoForSync()
+        resourceDao.rows.value = listOf(
+            ResourceLocalEntity(
+                id = "stuck", orgId = "org1", userId = null, name = "Stuck", type = "HUMAN",
+                hourlyRateAmount = 1.0, currency = "USD", availabilityStatus = "AVAILABLE",
+                skillsSummary = "", syncVersion = 0
+            ),
+            ResourceLocalEntity(
+                id = "fresh", orgId = "org1", userId = null, name = "Fresh", type = "HUMAN",
+                hourlyRateAmount = 2.0, currency = "USD", availabilityStatus = "AVAILABLE",
+                skillsSummary = "", syncVersion = 0
+            )
+        )
+        val resourceApi = FakeResourceApiForSync(
+            ResourceResponse(id = "fresh", orgId = "org1", userId = null, name = "Fresh", type = "HUMAN", hourlyRateAmount = 2.0, currency = "USD", availabilityStatus = "AVAILABLE")
+        )
+        val resourceRepository = buildResourceRepository(resourceApi, resourceDao)
+
+        val pendingMutationDao = FakePendingMutationDaoForSync()
+        val stuckEntry = SyncEntryRequest("RESOURCE", "stuck", emptyMap(), "2026-01-01T00:00:00Z", 0)
+        pendingMutationDao.upsert(
+            PendingMutationEntity(
+                "RESOURCE:stuck", "RESOURCE", "POST", "api/v1/sync/push",
+                json.encodeToString(stuckEntry), createdAt = 0L,
+                status = PendingMutationStatus.FAILED, lastError = "stuck forever"
+            )
+        )
+        val freshEntry = SyncEntryRequest("RESOURCE", "fresh", emptyMap(), "2026-06-01T00:00:00Z", 0)
+        pendingMutationDao.upsert(
+            PendingMutationEntity(
+                "RESOURCE:fresh", "RESOURCE", "POST", "api/v1/sync/push",
+                json.encodeToString(freshEntry), createdAt = 1_000_000L,
+                status = PendingMutationStatus.PENDING
+            )
+        )
+
+        // A push that always succeeds — if pushMutation accidentally grabbed the oldest
+        // (stuck) entry instead of the targeted one, this fake would still report success,
+        // so the real assertion is in which row ends up SYNCED afterward.
+        val syncApi = FakeSyncApi(pushResult = PushResultResponse(appliedCount = 1, conflictCount = 0, conflicts = emptyList()))
+        val syncRepository = SyncRepository(syncApi, pendingMutationDao, FakeAuditLogDao(), resourceRepository, buildProjectRepository(), json)
+
+        syncRepository.pushMutation("RESOURCE:fresh")
+
+        assertEquals(PendingMutationStatus.SYNCED, pendingMutationDao.getById("RESOURCE:fresh")?.status)
+        // Untouched — proves the targeted push never looked at the older stuck row.
+        assertEquals(PendingMutationStatus.FAILED, pendingMutationDao.getById("RESOURCE:stuck")?.status)
+        assertEquals("stuck forever", pendingMutationDao.getById("RESOURCE:stuck")?.lastError)
+        assertEquals(1, (syncApi.lastPushRequest?.changes?.size ?: 0))
     }
 }
