@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:mariadb://localhost:3306/rmp?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:munji1280}
+    password: ${DB_PASSWORD:Josh@977}
     driver-class-name: org.mariadb.jdbc.Driver
 
   jpa:
