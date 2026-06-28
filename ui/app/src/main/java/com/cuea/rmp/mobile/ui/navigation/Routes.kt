@@ -1,5 +1,13 @@
 package com.cuea.rmp.mobile.ui.navigation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.ui.graphics.vector.ImageVector
+
 /**
  * All 14 target screens are declared up front (even where the screen doesn't exist yet)
  * so the nav graph doesn't need rework as later sprints swap placeholders for real screens.
@@ -38,12 +46,12 @@ sealed class Routes(val route: String) {
     object Requests : Routes("requests")
 }
 
-data class BottomNavDestination(val routes: Routes, val label: String)
+data class BottomNavDestination(val routes: Routes, val label: String, val icon: ImageVector)
 
 val bottomNavDestinations = listOf(
-    BottomNavDestination(Routes.Dashboard, "Dashboard"),
-    BottomNavDestination(Routes.ResourceList, "Resources"),
-    BottomNavDestination(Routes.ProjectList, "Projects"),
-    BottomNavDestination(Routes.ResourceCalendar, "Calendar"),
-    BottomNavDestination(Routes.Reports, "Reports")
+    BottomNavDestination(Routes.Dashboard, "Dashboard", Icons.Filled.Dashboard),
+    BottomNavDestination(Routes.ResourceList, "Resources", Icons.Filled.Group),
+    BottomNavDestination(Routes.ProjectList, "Projects", Icons.Filled.Folder),
+    BottomNavDestination(Routes.ResourceCalendar, "Calendar", Icons.Filled.CalendarMonth),
+    BottomNavDestination(Routes.Reports, "Reports", Icons.Filled.BarChart)
 )
