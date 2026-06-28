@@ -1,6 +1,13 @@
 package com.cuea.rmp.mobile.ui
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +61,6 @@ import com.cuea.rmp.mobile.ui.timesheet.TimesheetViewModel
 private val chromeRoutes = setOf(
     Routes.Dashboard.route,
     Routes.ResourceList.route,
-    Routes.ResourceDetail.route,
     Routes.ResourceCalendar.route,
     Routes.ProjectList.route,
     Routes.ProjectDetail.route,
@@ -108,7 +114,11 @@ fun AppRoot(
     Scaffold(
         topBar = {
             if (showChrome) {
-                AppTopBar(authViewModel = authViewModel, navController = navController)
+                AppTopBar(
+                    authViewModel = authViewModel,
+                    navController = navController,
+                    currentRoute = currentRoute
+                )
             }
         },
         bottomBar = {
@@ -153,7 +163,7 @@ fun AppRoot(
                 Routes.ResourceDetail.route,
                 arguments = listOf(navArgument("resourceId") { type = NavType.StringType })
             ) {
-                ResourceDetailScreen()
+                ResourceDetailScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ResourceCalendar.route) { PlaceholderScreen("Resource Calendar") }
             composable(Routes.ProjectList.route) {
@@ -202,16 +212,47 @@ fun AppRoot(
     }
 }
 
+// Routes that are "top-level" — no back arrow needed in the top bar.
+private val primaryRoutes = setOf(
+    Routes.Dashboard.route,
+    Routes.ResourceList.route,
+    Routes.ProjectList.route,
+    Routes.ResourceCalendar.route,
+    Routes.Reports.route
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppTopBar(authViewModel: AuthViewModel, navController: NavHostController) {
+private fun AppTopBar(
+    authViewModel: AuthViewModel,
+    navController: NavHostController,
+    currentRoute: String?
+) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val showBack = currentRoute != null && currentRoute !in primaryRoutes
 
     TopAppBar(
         title = { Text("Resource Manager Pro") },
+        navigationIcon = {
+            if (showBack) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
         actions = {
-            TextButton(onClick = { menuExpanded = true }) {
-                Text("More")
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More options")
             }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(
@@ -243,8 +284,8 @@ private fun AppTopBar(authViewModel: AuthViewModel, navController: NavHostContro
                     }
                 )
             }
-            TextButton(onClick = { authViewModel.logout() }) {
-                Text("Logout")
+            IconButton(onClick = { authViewModel.logout() }) {
+                Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
             }
         }
     )
@@ -258,18 +299,19 @@ private fun AppBottomBar(navController: NavHostController, currentRoute: String?
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    if (!selected) {
-                        navController.navigate(destination.routes.route) {
-                            popUpTo(Routes.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                    navController.navigate(destination.routes.route) {
+                        popUpTo(Routes.Dashboard.route) {
+                            saveState = true
+                            inclusive = false
                         }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 icon = {
-                    Text(
-                        destination.label.first().toString(),
-                        style = MaterialTheme.typography.titleMedium
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = destination.label
                     )
                 },
                 label = { Text(destination.label) }
